@@ -1157,11 +1157,11 @@ Proceed?`)) return;
 
     async function resetAllFirebase(){
       if (!requireTeacher()) return;
-      if (!confirm("RESET ALL CLOUD DATA?
+      if (!confirm(`RESET ALL CLOUD DATA?
 Deletes teams, activities, scores, and clears teamId in users.
 (Does not delete Auth accounts.)
 
-Proceed?")) return;
+Proceed?`)) return;
 
       const batch = db.batch();
       const teamsSnap = await db.collection("teams").get();
