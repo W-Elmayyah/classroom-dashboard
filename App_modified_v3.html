@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Classroom Gamification Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f0f8ff; margin: 20px; }
+    h1, h2 { text-align: center; color: #333; }
+    button { padding: 8px 12px; margin: 5px; cursor: pointer; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; background: white; }
+    th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+    th { background: #4CAF50; color: white; }
+    input[type="text"], input[type="number"], input[type="email"], input[type="password"] { padding: 8px; }
+    input:disabled { background: #f0f0f0; }
+    .gold { background: gold !important; color: black !important; font-weight: bold; }
+    .silver { background: silver !important; color: black !important; font-weight: bold; }
+    .bronze { background: #cd7f32 !important; color: white !important; font-weight: bold; }
+    tr { cursor: pointer; transition: background 0.2s; }
+    tr:hover { background: #f9f9f9 !important; }
+    .tabs { overflow: hidden; border: 1px solid #ccc; background: #f1f1f1; }
+    .tablink { background: #ccc; float: left; border: none; outline: none; cursor: pointer; padding: 14px 16px; }
+    .tablink:hover { background: #ddd; }
+    .tablink.active { background: #fff; }
+    .tablink[disabled] { opacity: 0.5; cursor: not-allowed; }
+    .tabcontent { display: none; padding: 20px; border: 1px solid #ccc; border-top: none; background: white; }
+    .tabcontent.active { display: block; }
+    .stars { color: gold; font-size: 1.2em; }
+    .score { font-weight: bold; font-size: 1.3em; color: #2c3e50; }
+    select { padding: 8px; margin: 10px 0; font-size: 1em; }
+
+    /* Auth / header */
+    .topbar {
+      display:flex; gap:10px; justify-content:space-between; align-items:center;
+      background:#ffffffcc; border:1px solid #d9e7ff; border-radius:10px; padding:10px 12px;
+      max-width: 1100px; margin: 0 auto 15px auto;
+    }
+    .topbar .who { font-weight: bold; color:#2c3e50; }
+    .card {
+      max-width: 900px; margin: 10px auto; background:white; border:1px solid #ddd;
+      border-radius: 12px; padding: 16px; box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+    }
+    .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+    .hint { color:#555; font-size: 0.95em; }
+    .pill { display:inline-block; padding: 2px 10px; border-radius: 999px; background:#eef7ee; border:1px solid #cfe9cf; font-size: 0.9em; }
+    .avatars { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+    .avatarBtn {
+      border: 1px solid #ccc; background: #fff; border-radius: 10px;
+      padding: 8px 10px; font-size: 20px; line-height: 1;
+    }
+    .avatarBtn.selected { border-color:#4CAF50; box-shadow: 0 0 0 3px rgba(76,175,80,0.25); }
+    .danger { background:#f44336; color:white; border:none; }
+    .primary { background:#4CAF50; color:white; border:none; }
+    .secondary { background:#1976d2; color:white; border:none; }
+
+    /* Popup */
+    .popup { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border: 2px solid #4CAF50; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); z-index: 1000; text-align: center; max-width: 320px; }
+    .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; }
+    .close-popup { margin-top: 15px; padding: 8px 16px; background: #f44336; color: white; border: none; cursor: pointer; }
+
+    .hidden { display:none !important; }
+  </style>
+</head>
+
+<body>
+  <h1>🏆 Classroom Gamification Dashboard 🏆</h1>
+  <p style="text-align:center; font-size:1.1em;">
+    Scoring: 1 XP = 1 point | 1 Star = 5 points<br />
+    <em>Click any team row to see score breakdown</em>
+  </p>
+
+  <!-- Auth / Session Bar -->
+  <div class="topbar" id="topbar">
+    <div>
+      <div class="who" id="whoami">Not signed in</div>
+      <div class="hint" id="rolehint">Students can view the Dashboard only. Teacher can manage & grade.</div>
+    </div>
+    <div>
+      <button class="secondary" onclick="showAuth()">Sign in / Register</button>
+      <button class="danger hidden" id="logoutBtn" onclick="logout()">Logout</button>
+    </div>
+  </div>
+
+  <!-- Auth Panel -->
+  <div class="card" id="authCard">
+    <h2>Sign in / Register</h2>
+    <div class="grid">
+      <div style="border-right:1px dashed #ddd; padding-right:12px;">
+        <h3>Student login</h3>
+        <p class="hint">Enter the email you used to register.</p>
+        <input type="email" id="loginEmail" placeholder="student@email.com" style="width:100%;" />
+        <button class="primary" style="width:100%; margin-top:8px;" onclick="loginStudent()">Login as Student</button>
+      </div>
+
+      <div style="border-right:1px dashed #ddd; padding-right:12px;">
+        <h3>Teacher login</h3>
+        <p class="hint">Teacher can access all pages. Change the PIN in the code.</p>
+        <input type="password" id="teacherPin" placeholder="Teacher PIN" style="width:100%;" />
+        <button class="primary" style="width:100%; margin-top:8px;" onclick="loginTeacher()">Login as Teacher</button>
+        <p class="hint" style="margin-top:8px;"><span class="pill">Default PIN: 1234</span></p>
+      </div>
+
+      <div>
+        <h3>Student registration</h3>
+        <p class="hint">Register with your name + email, choose a team and an avatar.</p>
+        <input type="text" id="regName" placeholder="Full name" style="width:100%; margin-bottom:8px;" />
+        <input type="email" id="regEmail" placeholder="Email" style="width:100%; margin-bottom:8px;" />
+        
+        <div style="margin-bottom:8px;">
+          <div class="hint" style="margin-bottom:6px;">Team choice:</div>
+          <label style="display:block; margin:4px 0;">
+            <input type="radio" name="teamMode" value="existing" checked onchange="toggleTeamMode()"> Join an existing team
+          </label>
+          <select id="regTeamSelect" style="width:100%; margin:6px 0;" onchange="syncTeamNameFromMode()"></select>
+
+          <label style="display:block; margin:8px 0 4px 0;">
+            <input type="radio" name="teamMode" value="new" onchange="toggleTeamMode()"> Create a new team
+          </label>
+          <input type="text" id="regTeamNew" placeholder="New team name" oninput="syncTeamNameFromMode()" style="width:100%; margin-bottom:6px;" />
+          <input type="hidden" id="regTeam" />
+          <div class="hint">Tip: if no teams exist yet, create a new one.</div>
+        </div>
+<div class="hint">Choose an avatar:</div>
+        <div class="avatars" id="avatarPicker"></div>
+        <input type="hidden" id="regAvatar" />
+        <button class="primary" style="width:100%; margin-top:10px;" onclick="registerStudent()">Register</button>
+        <div class="hint" id="regMsg" style="margin-top:8px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- App Tabs -->
+  <div class="tabs" id="appTabs">
+    <button class="tablink active" id="tabDashboard" onclick="openTab(event, 'Dashboard')">Main Dashboard</button>
+    <button class="tablink" id="tabActivities" onclick="openTab(event, 'Activities')">Activities & Grading</button>
+    <button class="tablink" id="tabManage" onclick="openTab(event, 'Manage')">Manage Teams & Activities</button>
+  </div>
+
+  <!-- Main Dashboard Tab -->
+  <div id="Dashboard" class="tabcontent active">
+    <h2>Global Leaderboard</h2>
+    <table id="leaderboardTable">
+      <thead>
+        <tr>
+          <th>Rank</th><th>Team</th><th>Total Score</th><th>Total XP</th><th>Total Stars</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <div class="card">
+      <h3>Teams (avatars & members)</h3>
+      <div id="teamCards" class="grid"></div>
+      <div class="hint" style="margin-top:8px;">(Students register themselves. Teacher can still add teams manually.)</div>
+    </div>
+  </div>
+
+  <!-- Activities Tab -->
+  <div id="Activities" class="tabcontent">
+    <h2>Activities & Grading</h2>
+
+    <p id="activitiesDenied" class="hint hidden">Teacher only.</p>
+
+    <div id="activitiesTeacherOnly">
+      <select id="activitySelect" onchange="loadActivity()"></select>
+
+      <div id="activityContainer" style="display:none;">
+        <h3 id="currentActivityName"></h3>
+        <table id="activityTable">
+          <thead>
+            <tr><th>Team</th><th>Attendance</th><th>XP (0-10)</th><th>Stars (0-3)</th><th>Feedback</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p id="noActivityMessage">← Select an activity from the dropdown to start grading.</p>
+    </div>
+  </div>
+
+  <!-- Manage Tab -->
+  <div id="Manage" class="tabcontent">
+    <h2>Manage Teams & Activities</h2>
+
+    <p id="manageDenied" class="hint hidden">Teacher only.</p>
+
+    <div id="manageTeacherOnly">
+      <div>
+        <h3>Add Team (Teacher)</h3>
+        <input type="text" id="newTeam" placeholder="Team Name">
+        <button onclick="addTeam()">Add Team</button>
+      </div>
+
+      <div style="margin-top: 20px;">
+        <h3>Add Activity (Teacher)</h3>
+        <input type="text" id="newActivity" placeholder="Activity Name (e.g., Activity 01)">
+        <button onclick="addActivity()">Add Activity</button>
+        <p>Maximum 20 activities.</p>
+      </div>
+
+      <div style="margin-top: 30px;">
+        <button onclick="resetAll()" class="danger">Reset All Data (Caution!)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Popup Overlay -->
+  <div id="overlay" class="overlay" onclick="closePopup()"></div>
+  <div id="popup" class="popup">
+    <h3 id="popupTeam"></h3>
+    <p id="popupDetails" style="font-size:1.2em;"></p>
+    <button class="close-popup" onclick="closePopup()">Close</button>
+  </div>
+
+  <script>
+    /**********************
+     *  SIMPLE ROLE SYSTEM
+     *  - Teacher: PIN-based
+     *  - Students: register with email/name/team/avatar
+     *  Storage: localStorage only (single-device)
+     **********************/
+
+    const TEACHER_PIN = "1411"; // ✅ Change this before using in class
+
+    const AVATARS = ["🦁","🦊","🐯","🐼","🐸","🦉","🐺","🐲","🦅","🐙","🐝","🦄","🐬","🐢","🦖","🐨"];
+
+    // App data (teams/activities/scores) as in your original file
+    let data = { teams: [], activities: [], scores: {}, teamMeta: {} };
+
+    // Users: { [email]: {name,email,team,avatar,role:"student"} }
+    let users = {};
+
+    // Session: { role:"guest"|"student"|"teacher", email?: string }
+    let session = { role: "guest", email: null };
+
+    let currentActivity = null;
+
+    /* ---------- Storage ---------- */
+    function loadAll() {
+      // core game data
+      const saved = localStorage.getItem("classroomDataV2");
+      if (saved) {
+        try { data = JSON.parse(saved); } catch(e) {}
+      }
+      // users
+      const savedUsers = localStorage.getItem("classroomUsersV2");
+      if (savedUsers) {
+        try { users = JSON.parse(savedUsers); } catch(e) {}
+      }
+      // session
+      const savedSession = localStorage.getItem("classroomSessionV2");
+      if (savedSession) {
+        try { session = JSON.parse(savedSession); } catch(e) {}
+      }
+
+      // backward compatibility (if you had older key)
+      const legacy = localStorage.getItem("classroomData");
+      if (!saved && legacy) {
+        try {
+          const old = JSON.parse(legacy);
+          // migrate minimal fields
+          data.teams = old.teams || [];
+          data.activities = old.activities || [];
+          data.scores = old.scores || {};
+          data.teamMeta = data.teamMeta || {};
+          saveData();
+        } catch(e) {}
+      }
+
+      renderAvatarPicker();
+      renderTeamSelect();
+      toggleTeamMode();
+      enforceRoleUI();
+      updateAll();
+    }
+
+    function saveData() {
+      localStorage.setItem("classroomDataV2", JSON.stringify(data));
+      updateLeaderboard();
+      if (currentActivity) loadActivity();
+      renderTeamCards();
+      renderTeamSelect();
+    }
+
+    function saveUsers() {
+      localStorage.setItem("classroomUsersV2", JSON.stringify(users));
+      renderTeamCards();
+    }
+
+    function saveSession() {
+      localStorage.setItem("classroomSessionV2", JSON.stringify(session));
+      enforceRoleUI();
+    }
+
+    /* ---------- Auth UI ---------- */
+    function showAuth() {
+      document.getElementById("authCard").classList.remove("hidden");
+      window.scrollTo({top:0, behavior:"smooth"});
+    }
+
+    function setRegMsg(msg, isError=false) {
+      const el = document.getElementById("regMsg");
+      el.textContent = msg;
+      el.style.color = isError ? "#b00020" : "#2e7d32";
+    }
+
+    function renderAvatarPicker() {
+      const wrap = document.getElementById("avatarPicker");
+      wrap.innerHTML = "";
+      const hidden = document.getElementById("regAvatar");
+
+      // default selection
+      if (!hidden.value) hidden.value = AVATARS[0];
+
+      AVATARS.forEach(a => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "avatarBtn" + (hidden.value === a ? " selected" : "");
+        btn.textContent = a;
+        btn.onclick = () => {
+          hidden.value = a;
+          // re-render selection state
+          renderAvatarPicker();
+        };
+        wrap.appendChild(btn);
+      });
+    }
+
+
+    function renderTeamSelect() {
+      const sel = document.getElementById("regTeamSelect");
+      if (!sel) return;
+
+      const prev = sel.value;
+      sel.innerHTML = "";
+
+      const placeholder = document.createElement("option");
+      placeholder.value = "";
+      placeholder.textContent = (data.teams && data.teams.length) ? "-- Select a team --" : "-- No teams yet --";
+      sel.appendChild(placeholder);
+
+      (data.teams || []).forEach(t => {
+        const opt = document.createElement("option");
+        opt.value = t;
+        opt.textContent = t;
+        sel.appendChild(opt);
+      });
+
+      if (prev && (data.teams || []).includes(prev)) sel.value = prev;
+
+      syncTeamNameFromMode();
+    }
+
+    function toggleTeamMode() {
+      const mode = document.querySelector('input[name="teamMode"]:checked')?.value || "existing";
+      const sel = document.getElementById("regTeamSelect");
+      const inp = document.getElementById("regTeamNew");
+
+      if (sel) sel.disabled = (mode !== "existing");
+      if (inp) inp.disabled = (mode !== "new");
+
+      syncTeamNameFromMode();
+    }
+
+    function syncTeamNameFromMode() {
+      const mode = document.querySelector('input[name="teamMode"]:checked')?.value || "existing";
+      const sel = document.getElementById("regTeamSelect");
+      const inp = document.getElementById("regTeamNew");
+      const hidden = document.getElementById("regTeam");
+
+      let teamName = "";
+      if (mode === "existing") teamName = (sel?.value || "").trim();
+      else teamName = (inp?.value || "").trim();
+
+      if (hidden) hidden.value = teamName;
+    }
+
+    function getTeamFromRegistration() {
+      syncTeamNameFromMode();
+      return (document.getElementById("regTeam")?.value || "").trim();
+    }
+    function registerStudent() {
+      const name = document.getElementById("regName").value.trim();
+      const email = document.getElementById("regEmail").value.trim().toLowerCase();
+      const team = getTeamFromRegistration();
+      const avatar = document.getElementById("regAvatar").value || AVATARS[0];
+
+      if (!name || !email) {
+        setRegMsg("Please enter your name and email.", true);
+        return;
+      }
+      const mode = document.querySelector('input[name="teamMode"]:checked')?.value || "existing";
+      if (!team) {
+        setRegMsg(mode === "existing" ? "Please select an existing team, or switch to Create a new team." : "Please enter a new team name.", true);
+        return;
+      }
+      if (!/^\S+@\S+\.\S+$/.test(email)) {
+        setRegMsg("Please enter a valid email address.", true);
+        return;
+      }
+      if (users[email]) {
+        setRegMsg("This email is already registered. Please login.", true);
+        return;
+      }
+
+      // create user
+      users[email] = { name, email, team, avatar, role: "student" };
+      saveUsers();
+
+      // ensure team exists and store avatar/meta
+      ensureTeam(team, avatar);
+      // optional: store member list per team
+      if (!data.teamMeta[team]) data.teamMeta[team] = { avatar: avatar, members: [] };
+      if (!data.teamMeta[team].members) data.teamMeta[team].members = [];
+      data.teamMeta[team].avatar = data.teamMeta[team].avatar || avatar;
+      data.teamMeta[team].members.push({ name, email, avatar });
+      saveData();
+
+      // clear fields
+      document.getElementById("regName").value = "";
+      document.getElementById("regEmail").value = "";
+      document.getElementById("regTeam").value = "";
+      document.getElementById("regTeamNew").value = "";
+      document.querySelector('input[name="teamMode"][value="existing"]').checked = true;
+      toggleTeamMode();
+      renderTeamSelect();
+      document.getElementById("regAvatar").value = AVATARS[0];
+      renderAvatarPicker();
+
+      setRegMsg("Registered successfully! Now login with your email.");
+    }
+
+    function loginStudent() {
+      const email = document.getElementById("loginEmail").value.trim().toLowerCase();
+      if (!email) return alert("Enter your email.");
+      if (!users[email]) return alert("Email not registered. Please register first.");
+
+      session = { role: "student", email };
+      saveSession();
+      document.getElementById("authCard").classList.add("hidden");
+      openTabFake("Dashboard");
+    }
+
+    function loginTeacher() {
+      const pin = document.getElementById("teacherPin").value.trim();
+      if (pin !== TEACHER_PIN) return alert("Incorrect teacher PIN.");
+
+      session = { role: "teacher", email: null };
+      saveSession();
+      document.getElementById("teacherPin").value = "";
+      document.getElementById("authCard").classList.add("hidden");
+      openTabFake("Dashboard");
+    }
+
+    function logout() {
+      session = { role: "guest", email: null };
+      saveSession();
+      showAuth();
+      openTabFake("Dashboard");
+    }
+
+    function enforceRoleUI() {
+      const who = document.getElementById("whoami");
+      const roleHint = document.getElementById("rolehint");
+      const logoutBtn = document.getElementById("logoutBtn");
+
+      const tabActivities = document.getElementById("tabActivities");
+      const tabManage = document.getElementById("tabManage");
+
+      if (session.role === "teacher") {
+        who.textContent = "Signed in as: Teacher";
+        roleHint.textContent = "Teacher mode: full access (Dashboard + Activities + Manage).";
+        logoutBtn.classList.remove("hidden");
+        tabActivities.disabled = false;
+        tabManage.disabled = false;
+        tabActivities.classList.remove("hidden");
+        tabManage.classList.remove("hidden");
+      } else if (session.role === "student") {
+        const u = users[session.email];
+        who.textContent = u ? `Signed in as: ${u.name} (${u.email}) — Team: ${u.team} ${u.avatar}` : "Signed in as: Student";
+        roleHint.textContent = "Student mode: Dashboard only (read-only).";
+        logoutBtn.classList.remove("hidden");
+        // Hide/disable teacher tabs
+        tabActivities.disabled = true;
+        tabManage.disabled = true;
+        tabActivities.classList.add("hidden");
+        tabManage.classList.add("hidden");
+        // If student somehow is on other tabs, force dashboard
+        openTabFake("Dashboard");
+      } else {
+        who.textContent = "Not signed in";
+        roleHint.textContent = "Please sign in. Students: Dashboard only. Teacher: full access.";
+        logoutBtn.classList.add("hidden");
+        tabActivities.disabled = true;
+        tabManage.disabled = true;
+        tabActivities.classList.add("hidden");
+        tabManage.classList.add("hidden");
+        openTabFake("Dashboard");
+      setTeacherOnlyVisibility();
+
+      }
+
+    function setTeacherOnlyVisibility() {
+      const isTeacher = session.role === "teacher";
+
+      // Activities
+      const aDenied = document.getElementById("activitiesDenied");
+      const aWrap = document.getElementById("activitiesTeacherOnly");
+      if (aDenied && aWrap) {
+        aDenied.classList.toggle("hidden", isTeacher);
+        aWrap.classList.toggle("hidden", !isTeacher);
+      }
+
+      // Manage
+      const mDenied = document.getElementById("manageDenied");
+      const mWrap = document.getElementById("manageTeacherOnly");
+      if (mDenied && mWrap) {
+        mDenied.classList.toggle("hidden", isTeacher);
+        mWrap.classList.toggle("hidden", !isTeacher);
+      }
+    }
+    }
+
+    /* ---------- Original app logic (with small changes) ---------- */
+    function updateAll() {
+      updateLeaderboard();
+      updateActivitySelect();
+      renderTeamCards();
+    }
+
+    function ensureTeam(name, avatarIfNew=null) {
+      if (!data.teams.includes(name)) {
+        data.teams.push(name);
+        // init scores for existing activities
+        data.activities.forEach(act => {
+          if (!data.scores[act]) data.scores[act] = {};
+          data.scores[act][name] = { attend: false, xp: 0, stars: 0, feedback: "" };
+        });
+        if (!data.teamMeta) data.teamMeta = {};
+        data.teamMeta[name] = data.teamMeta[name] || { avatar: avatarIfNew || "👥", members: [] };
+      } else {
+        // ensure meta exists
+        if (!data.teamMeta) data.teamMeta = {};
+        data.teamMeta[name] = data.teamMeta[name] || { avatar: avatarIfNew || "👥", members: [] };
+        // keep first avatar if already set
+        if (avatarIfNew && !data.teamMeta[name].avatar) data.teamMeta[name].avatar = avatarIfNew;
+      }
+    }
+
+    function addTeam() {
+      if (session.role !== "teacher") return alert("Teacher only.");
+      const name = document.getElementById("newTeam").value.trim();
+      if (name) {
+        ensureTeam(name, "👥");
+        document.getElementById("newTeam").value = "";
+        saveData();
+      }
+    }
+
+    function addActivity() {
+      if (session.role !== "teacher") return alert("Teacher only.");
+      const name = document.getElementById("newActivity").value.trim();
+      if (name && data.activities.length < 20 && !data.activities.includes(name)) {
+        data.activities.push(name);
+        data.scores[name] = {};
+        data.teams.forEach(team => {
+          data.scores[name][team] = { attend: false, xp: 0, stars: 0, feedback: "" };
+        });
+        document.getElementById("newActivity").value = "";
+        saveData();
+      }
+    }
+
+    function updateLeaderboard() {
+      const tbody = document.querySelector("#leaderboardTable tbody");
+      tbody.innerHTML = "";
+
+      if (data.teams.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5">No teams yet. Students can register, or teacher can add teams in Manage.</td></tr>';
+        return;
+      }
+
+      const totals = data.teams.map(team => {
+        let totalXP = 0, totalStars = 0;
+        data.activities.forEach(act => {
+          const s = data.scores[act]?.[team] || { xp: 0, stars: 0, attend: false };
+          totalXP += s.attend ? s.xp : 0;
+          totalStars += s.stars;
+        });
+        const totalScore = totalXP * 1 + totalStars * 5;
+        return { team, totalXP, totalStars, totalScore };
+      });
+
+      totals.sort((a, b) => b.totalScore - a.totalScore || b.totalXP - a.totalXP || b.totalStars - a.totalStars);
+
+      totals.forEach((row, i) => {
+        const tr = document.createElement("tr");
+        if (i === 0) tr.classList.add("gold");
+        if (i === 1) tr.classList.add("silver");
+        if (i === 2) tr.classList.add("bronze");
+
+        tr.onclick = () => showPopup(row.team, row.totalXP, row.totalStars, row.totalScore);
+
+        const avatar = data.teamMeta?.[row.team]?.avatar ? `${data.teamMeta[row.team].avatar} ` : "";
+        tr.innerHTML = `
+          <td>${i + 1} ${i < 3 ? "🏅" : ""}</td>
+          <td>${avatar}${row.team}</td>
+          <td class="score">${row.totalScore}</td>
+          <td>${row.totalXP}</td>
+          <td class="stars">${"⭐".repeat(row.totalStars)} (${row.totalStars})</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderTeamCards() {
+      const wrap = document.getElementById("teamCards");
+      wrap.innerHTML = "";
+
+      if (!data.teams || data.teams.length === 0) {
+        wrap.innerHTML = "<div class='hint'>No teams yet.</div>";
+        return;
+      }
+
+      data.teams.forEach(team => {
+        const meta = data.teamMeta?.[team] || { avatar: "👥", members: [] };
+        const members = (meta.members || []).slice(0, 8)
+          .map(m => `${m.avatar || "🙂"} ${escapeHtml(m.name || m.email)}`).join("<br>");
+        const more = (meta.members || []).length > 8 ? `<br><span class="hint">+${(meta.members||[]).length - 8} more</span>` : "";
+
+        const div = document.createElement("div");
+        div.className = "card";
+        div.style.margin = "0";
+        div.innerHTML = `
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+            <div style="font-size:28px;">${meta.avatar || "👥"}</div>
+            <div style="flex:1;">
+              <div style="font-weight:bold;">${escapeHtml(team)}</div>
+              <div class="hint">${(meta.members||[]).length} member(s)</div>
+            </div>
+          </div>
+          <div style="margin-top:10px; font-size:0.95em; text-align:left;">
+            ${members || "<span class='hint'>No registered members yet.</span>"}${more}
+          </div>
+        `;
+        wrap.appendChild(div);
+      });
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replaceAll("&","&amp;").replaceAll("<","&lt;")
+        .replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
+    }
+
+    function showPopup(team, xp, stars, score) {
+      document.getElementById("popupTeam").textContent = team;
+      document.getElementById("popupDetails").innerHTML = `
+        <strong>${xp}</strong> XP × 1 = ${xp} points<br><br>
+        <strong>${stars}</strong> ⭐ × 5 = ${stars * 5} points<br><br>
+        <strong>Total Score: ${score}</strong>
+      `;
+      document.getElementById("overlay").style.display = "block";
+      document.getElementById("popup").style.display = "block";
+    }
+
+    function closePopup() {
+      document.getElementById("overlay").style.display = "none";
+      document.getElementById("popup").style.display = "none";
+    }
+
+    function updateActivitySelect() {
+      const select = document.getElementById("activitySelect");
+      select.innerHTML = '<option value="">-- Select Activity to Grade --</option>';
+      data.activities.forEach(act => {
+        const opt = document.createElement("option");
+        opt.value = act;
+        opt.text = act;
+        if (act === currentActivity) opt.selected = true;
+        select.appendChild(opt);
+      });
+    }
+
+    function loadActivity() {
+      if (session.role !== "teacher") return;
+
+      const select = document.getElementById("activitySelect");
+      currentActivity = select.value;
+      const container = document.getElementById("activityContainer");
+      const nameDisplay = document.getElementById("currentActivityName");
+      const noMsg = document.getElementById("noActivityMessage");
+      const tbody = document.querySelector("#activityTable tbody");
+      tbody.innerHTML = "";
+
+      if (!currentActivity) {
+        container.style.display = "none";
+        noMsg.style.display = "block";
+        return;
+      }
+
+      container.style.display = "block";
+      noMsg.style.display = "none";
+      nameDisplay.textContent = `Grading: ${currentActivity}`;
+
+      data.teams.forEach(team => {
+        if (!data.scores[currentActivity]) data.scores[currentActivity] = {};
+        const s = data.scores[currentActivity][team] || { attend: false, xp: 0, stars: 0, feedback: "" };
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${escapeHtml(team)}</td>
+          <td><input type="checkbox" ${s.attend ? "checked" : ""} onchange="updateScore('${escapeQuotes(team)}','attend', this.checked)"></td>
+          <td><input type="number" min="0" max="10" value="${s.attend ? s.xp : 0}" ${!s.attend ? "disabled" : ""} onchange="updateScore('${escapeQuotes(team)}','xp', this.value)"></td>
+          <td><input type="number" min="0" max="3" value="${s.stars}" onchange="updateScore('${escapeQuotes(team)}','stars', this.value)"></td>
+          <td><input type="text" value="${escapeAttr(s.feedback)}" onchange="updateScore('${escapeQuotes(team)}','feedback', this.value)" style="width:100%"></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function escapeQuotes(s){ return String(s).replaceAll("\\","\\\\").replaceAll("'","\\'"); }
+    function escapeAttr(s){ return String(s).replaceAll('"',"&quot;"); }
+
+    function updateScore(team, field, value) {
+      if (session.role !== "teacher") return;
+
+      if (!data.scores[currentActivity]) data.scores[currentActivity] = {};
+      if (!data.scores[currentActivity][team]) data.scores[currentActivity][team] = { attend: false, xp: 0, stars: 0, feedback: "" };
+
+      if (field === "attend") {
+        data.scores[currentActivity][team].attend = value;
+        if (!value) data.scores[currentActivity][team].xp = 0;
+      } else if (field === "xp") {
+        value = Math.max(0, Math.min(10, parseInt(value) || 0));
+        if (data.scores[currentActivity][team].attend) data.scores[currentActivity][team].xp = value;
+      } else if (field === "stars") {
+        value = Math.max(0, Math.min(3, parseInt(value) || 0));
+        data.scores[currentActivity][team].stars = value;
+      } else if (field === "feedback") {
+        data.scores[currentActivity][team].feedback = value;
+      }
+
+      saveData();
+    }
+
+    function openTab(evt, tabName) {
+      // student/guest can only open Dashboard
+      if (session.role !== "teacher" && tabName !== "Dashboard") {
+        alert("Students can access the Dashboard only.");
+        tabName = "Dashboard";
+      }
+
+      document.querySelectorAll(".tabcontent").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".tablink").forEach(b => b.classList.remove("active"));
+
+      document.getElementById(tabName).classList.add("active");
+      evt.currentTarget.classList.add("active");
+
+      if (tabName === "Dashboard") updateLeaderboard();
+      if (tabName === "Activities" && session.role === "teacher") {
+        updateActivitySelect();
+        loadActivity();
+      }
+    }
+
+    // helper to open a tab without an event (used after login)
+    function openTabFake(tabName) {
+      document.querySelectorAll(".tabcontent").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".tablink").forEach(b => b.classList.remove("active"));
+
+      document.getElementById(tabName).classList.add("active");
+      document.getElementById("tabDashboard").classList.add("active");
+      // keep teacher tabs inactive unless clicked
+      if (tabName === "Dashboard") updateLeaderboard();
+    }
+
+    function resetAll() {
+      if (session.role !== "teacher") return alert("Teacher only.");
+      if (confirm("This will delete ALL teams, activities, scores, and registrations on this browser. Are you sure?")) {
+        localStorage.removeItem("classroomDataV2");
+        localStorage.removeItem("classroomUsersV2");
+        localStorage.removeItem("classroomSessionV2");
+        localStorage.removeItem("classroomData"); // legacy
+        data = { teams: [], activities: [], scores: {}, teamMeta: {} };
+        users = {};
+        session = { role: "guest", email: null };
+        currentActivity = null;
+        loadAll();
+        showAuth();
+      }
+    }
+
+    /* ---------- Start ---------- */
+    // Hide auth card by default if signed in, else show
+    loadAll();
+    if (session.role !== "guest") document.getElementById("authCard").classList.add("hidden");
+  </script>
+</body>
+</html>
