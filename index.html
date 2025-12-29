@@ -190,6 +190,48 @@
         <button onclick="addTeam()">Add Team</button>
       </div>
 
+      <hr style="margin:22px 0; border:none; border-top:1px solid #eee;">
+
+      <div>
+        <h3>Manage Teams (Teacher)</h3>
+        <p class="hint">Rename or delete teams. Deleting a team can also delete its registered members on this browser.</p>
+        <div id="manageTeamsList" class="card" style="margin:0; padding:12px;"></div>
+      </div>
+
+      <hr style="margin:22px 0; border:none; border-top:1px solid #eee;">
+
+      <div>
+        <h3>Manage Students / Members (Teacher)</h3>
+        <p class="hint">Edit student details (name, avatar, team) or remove a student.</p>
+
+        <div class="grid" style="align-items:end;">
+          <div>
+            <div class="hint">Filter by team</div>
+            <select id="memberTeamFilter" style="width:100%;" onchange="renderMembersTable()"></select>
+          </div>
+          <div>
+            <div class="hint">Search (name or email)</div>
+            <input type="text" id="memberSearch" placeholder="Type to search..." style="width:100%;" oninput="renderMembersTable()">
+          </div>
+        </div>
+
+        <div class="card" style="margin:12px 0 0 0; padding:12px; overflow:auto;">
+          <table style="min-width:720px; margin:0;">
+            <thead>
+              <tr>
+                <th style="min-width:160px;">Name</th>
+                <th style="min-width:220px;">Email</th>
+                <th style="min-width:160px;">Team</th>
+                <th style="min-width:80px;">Avatar</th>
+                <th style="min-width:220px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="membersTbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+
       <div style="margin-top: 20px;">
         <h3>Add Activity (Teacher)</h3>
         <input type="text" id="newActivity" placeholder="Activity Name (e.g., Activity 01)">
@@ -210,6 +252,37 @@
     <p id="popupDetails" style="font-size:1.2em;"></p>
     <button class="close-popup" onclick="closePopup()">Close</button>
   </div>
+  <!-- Member Edit Modal -->
+  <div id="memberOverlay" class="overlay" onclick="closeMemberModal()"></div>
+  <div id="memberModal" class="popup" style="max-width:420px; text-align:left;">
+    <h3 style="margin-top:0;">Edit Student</h3>
+    <div class="hint" id="editMemberEmailHint" style="margin-bottom:10px;"></div>
+
+    <div style="margin-bottom:10px;">
+      <div class="hint">Name</div>
+      <input type="text" id="editMemberName" style="width:100%;">
+    </div>
+
+    <div style="margin-bottom:10px;">
+      <div class="hint">Team</div>
+      <select id="editMemberTeam" style="width:100%;"></select>
+      <div class="hint" style="margin-top:6px;">Or create new team:</div>
+      <input type="text" id="editMemberNewTeam" placeholder="New team name (optional)" style="width:100%;" oninput="syncEditTeamChoice()">
+    </div>
+
+    <div style="margin-bottom:10px;">
+      <div class="hint">Avatar</div>
+      <div class="avatars" id="editAvatarPicker"></div>
+      <input type="hidden" id="editMemberAvatar">
+    </div>
+
+    <div style="display:flex; gap:10px; justify-content:flex-end;">
+      <button class="danger" onclick="closeMemberModal()">Cancel</button>
+      <button class="primary" onclick="saveMemberEdits()">Save</button>
+    </div>
+  </div>
+
+
 
   <script>
     /**********************
@@ -219,7 +292,7 @@
      *  Storage: localStorage only (single-device)
      **********************/
 
-    const TEACHER_PIN = "1411"; // ✅ Change this before using in class
+    const TEACHER_PIN = "1234"; // ✅ Change this before using in class
 
     const AVATARS = ["🦁","🦊","🐯","🐼","🐸","🦉","🐺","🐲","🦅","🐙","🐝","🦄","🐬","🐢","🦖","🐨"];
 
@@ -496,6 +569,9 @@
         tabManage.classList.add("hidden");
         openTabFake("Dashboard");
       setTeacherOnlyVisibility();
+      renderManageTeamsList();
+      renderMemberTeamFilter();
+      renderMembersTable();
 
       }
 
@@ -520,11 +596,299 @@
     }
     }
 
-    /* ---------- Original app logic (with small changes) ---------- */
+    
+    /* ---------- Teacher management (teams & members) ---------- */
+
+    function renderManageTeamsList() {
+      const wrap = document.getElementById("manageTeamsList");
+      if (!wrap) return;
+
+      if (session.role !== "teacher") {
+        wrap.innerHTML = "<div class='hint'>Teacher only.</div>";
+        return;
+      }
+
+      if (!data.teams || data.teams.length === 0) {
+        wrap.innerHTML = "<div class='hint'>No teams yet.</div>";
+        return;
+      }
+
+      wrap.innerHTML = "";
+      data.teams.forEach(team => {
+        const row = document.createElement("div");
+        row.style.display = "grid";
+        row.style.gridTemplateColumns = "1fr 220px 120px";
+        row.style.gap = "10px";
+        row.style.alignItems = "center";
+        row.style.padding = "8px 0";
+        row.style.borderBottom = "1px dashed #eee";
+
+        const membersCount = (data.teamMeta?.[team]?.members || []).length;
+
+        row.innerHTML = `
+          <div>
+            <div style="font-weight:bold;">${escapeHtml(team)} <span class="pill" style="margin-left:6px;">${membersCount} member(s)</span></div>
+            <div class="hint">Rename or delete this team.</div>
+          </div>
+          <div>
+            <input type="text" id="rename_${cssSafeId(team)}" placeholder="New team name" style="width:100%;">
+          </div>
+          <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button class="secondary" onclick="renameTeam('${escapeQuotes(team)}')">Rename</button>
+            <button class="danger" onclick="deleteTeam('${escapeQuotes(team)}')">Delete</button>
+          </div>
+        `;
+        wrap.appendChild(row);
+      });
+    }
+
+    function cssSafeId(s){
+      return String(s).replaceAll(/[^a-zA-Z0-9_-]/g, "_");
+    }
+
+    function renameTeam(oldName) {
+      if (session.role !== "teacher") return alert("Teacher only.");
+      const input = document.getElementById(`rename_${cssSafeId(oldName)}`);
+      const newName = (input?.value || "").trim();
+      if (!newName) return alert("Enter a new team name.");
+      if (data.teams.includes(newName)) return alert("A team with this name already exists.");
+
+      data.teams = data.teams.map(t => (t === oldName ? newName : t));
+
+      if (!data.teamMeta) data.teamMeta = {};
+      data.teamMeta[newName] = data.teamMeta[oldName] || { avatar: "👥", members: [] };
+      delete data.teamMeta[oldName];
+
+      (data.activities || []).forEach(act => {
+        if (!data.scores[act]) data.scores[act] = {};
+        data.scores[act][newName] = data.scores[act][oldName] || { attend:false, xp:0, stars:0, feedback:"" };
+        delete data.scores[act][oldName];
+      });
+
+      Object.keys(users || {}).forEach(email => {
+        if (users[email].team === oldName) users[email].team = newName;
+      });
+
+      saveUsers();
+      saveData();
+      renderTeamSelect();
+      renderManageTeamsList();
+      renderMemberTeamFilter();
+      renderMembersTable();
+      alert("Team renamed successfully.");
+    }
+
+    function deleteTeam(teamName) {
+      if (session.role !== "teacher") return alert("Teacher only.");
+      const members = data.teamMeta?.[teamName]?.members || [];
+      const msg = `Delete team "${teamName}"?\n\nThis will remove its scores.\nMembers registered on this browser: ${members.length}\n\nOK = Delete team AND its members.`;
+      if (!confirm(msg)) return;
+
+      data.teams = (data.teams || []).filter(t => t !== teamName);
+
+      (data.activities || []).forEach(act => {
+        if (data.scores[act]) delete data.scores[act][teamName];
+      });
+
+      Object.keys(users || {}).forEach(email => {
+        if (users[email].team === teamName) delete users[email];
+      });
+
+      if (data.teamMeta) delete data.teamMeta[teamName];
+
+      saveUsers();
+      saveData();
+      renderManageTeamsList();
+      renderMemberTeamFilter();
+      renderMembersTable();
+      alert("Team deleted.");
+    }
+
+    function renderMemberTeamFilter() {
+      const sel = document.getElementById("memberTeamFilter");
+      if (!sel) return;
+
+      sel.innerHTML = "";
+      const optAll = document.createElement("option");
+      optAll.value = "__all__";
+      optAll.textContent = "All teams";
+      sel.appendChild(optAll);
+
+      (data.teams || []).forEach(t => {
+        const opt = document.createElement("option");
+        opt.value = t;
+        opt.textContent = t;
+        sel.appendChild(opt);
+      });
+    }
+
+    function renderMembersTable() {
+      const tbody = document.getElementById("membersTbody");
+      if (!tbody) return;
+
+      if (session.role !== "teacher") {
+        tbody.innerHTML = `<tr><td colspan="5" class="hint">Teacher only.</td></tr>`;
+        return;
+      }
+
+      const teamFilter = document.getElementById("memberTeamFilter")?.value || "__all__";
+      const q = (document.getElementById("memberSearch")?.value || "").trim().toLowerCase();
+
+      const list = Object.values(users || {})
+        .filter(u => u.role === "student")
+        .filter(u => teamFilter === "__all__" ? true : u.team === teamFilter)
+        .filter(u => !q ? true : (u.name||"").toLowerCase().includes(q) || (u.email||"").toLowerCase().includes(q))
+        .sort((a,b) => (a.team||"").localeCompare(b.team||"") || (a.name||"").localeCompare(b.name||""));
+
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="hint">No registered students match this filter.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = "";
+      list.forEach(u => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${escapeHtml(u.name || "")}</td>
+          <td>${escapeHtml(u.email || "")}</td>
+          <td>${escapeHtml(u.team || "")}</td>
+          <td style="font-size:22px;">${escapeHtml(u.avatar || "🙂")}</td>
+          <td>
+            <button class="secondary" onclick="openMemberModal('${escapeQuotes(u.email)}')">Edit</button>
+            <button class="danger" onclick="deleteMember('${escapeQuotes(u.email)}')">Delete</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function deleteMember(email) {
+      if (session.role !== "teacher") return alert("Teacher only.");
+      const u = users[email];
+      if (!u) return alert("User not found.");
+      if (!confirm(`Delete student:\n${u.name} (${u.email})\nTeam: ${u.team}\n\nThis removes the student from this browser only.`)) return;
+
+      const team = u.team;
+      if (data.teamMeta?.[team]?.members) {
+        data.teamMeta[team].members = data.teamMeta[team].members.filter(m => m.email !== email);
+      }
+
+      delete users[email];
+      saveUsers();
+      saveData();
+      renderMembersTable();
+      renderTeamCards();
+    }
+
+    function openMemberModal(email) {
+      if (session.role !== "teacher") return alert("Teacher only.");
+      const u = users[email];
+      if (!u) return alert("User not found.");
+
+      document.getElementById("editMemberEmailHint").textContent = `Email (key): ${u.email}`;
+      document.getElementById("editMemberName").value = u.name || "";
+      document.getElementById("editMemberAvatar").value = u.avatar || "🙂";
+      document.getElementById("editMemberNewTeam").value = "";
+
+      const sel = document.getElementById("editMemberTeam");
+      sel.innerHTML = "";
+      (data.teams || []).forEach(t => {
+        const opt = document.createElement("option");
+        opt.value = t;
+        opt.textContent = t;
+        sel.appendChild(opt);
+      });
+      if ((data.teams || []).includes(u.team)) sel.value = u.team;
+
+      renderEditAvatarPicker(u.avatar || "🙂");
+
+      document.getElementById("memberModal").dataset.email = u.email;
+
+      document.getElementById("memberOverlay").style.display = "block";
+      document.getElementById("memberModal").style.display = "block";
+    }
+
+    function closeMemberModal() {
+      const ov = document.getElementById("memberOverlay");
+      const mo = document.getElementById("memberModal");
+      if (ov) ov.style.display = "none";
+      if (mo) mo.style.display = "none";
+    }
+
+    function renderEditAvatarPicker(selected) {
+      const wrap = document.getElementById("editAvatarPicker");
+      wrap.innerHTML = "";
+      const hidden = document.getElementById("editMemberAvatar");
+      hidden.value = selected;
+
+      AVATARS.forEach(a => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "avatarBtn" + (hidden.value === a ? " selected" : "");
+        btn.textContent = a;
+        btn.onclick = () => {
+          hidden.value = a;
+          renderEditAvatarPicker(a);
+        };
+        wrap.appendChild(btn);
+      });
+    }
+
+    function syncEditTeamChoice() {
+      // No-op: we read typed team on save.
+    }
+
+    function saveMemberEdits() {
+      if (session.role !== "teacher") return alert("Teacher only.");
+      const modal = document.getElementById("memberModal");
+      const email = modal.dataset.email;
+      const u = users[email];
+      if (!u) return alert("User not found.");
+
+      const newName = document.getElementById("editMemberName").value.trim();
+      const newAvatar = document.getElementById("editMemberAvatar").value || u.avatar || "🙂";
+      const typedTeam = document.getElementById("editMemberNewTeam").value.trim();
+      const selectedTeam = document.getElementById("editMemberTeam").value;
+      const newTeam = typedTeam || selectedTeam;
+
+      if (!newName) return alert("Name cannot be empty.");
+      if (!newTeam) return alert("Select a team or type a new one.");
+
+      const oldTeam = u.team;
+
+      ensureTeam(newTeam, newAvatar);
+
+      u.name = newName;
+      u.avatar = newAvatar;
+      u.team = newTeam;
+
+      if (data.teamMeta?.[oldTeam]?.members) {
+        data.teamMeta[oldTeam].members = data.teamMeta[oldTeam].members.filter(m => m.email !== email);
+      }
+
+      if (!data.teamMeta[newTeam]) data.teamMeta[newTeam] = { avatar: newAvatar, members: [] };
+      if (!data.teamMeta[newTeam].members) data.teamMeta[newTeam].members = [];
+      data.teamMeta[newTeam].members = data.teamMeta[newTeam].members.filter(m => m.email !== email);
+      data.teamMeta[newTeam].members.push({ name: newName, email, avatar: newAvatar });
+
+      data.teamMeta[newTeam].avatar = data.teamMeta[newTeam].avatar || newAvatar;
+
+      saveUsers();
+      saveData();
+      renderManageTeamsList();
+      renderMemberTeamFilter();
+      renderMembersTable();
+      closeMemberModal();
+    }
+
+/* ---------- Original app logic (with small changes) ---------- */
     function updateAll() {
       updateLeaderboard();
       updateActivitySelect();
       renderTeamCards();
+      renderManageTeamsList();
+      renderMemberTeamFilter();
+      renderMembersTable();
     }
 
     function ensureTeam(name, avatarIfNew=null) {
@@ -758,6 +1122,11 @@
       if (tabName === "Activities" && session.role === "teacher") {
         updateActivitySelect();
         loadActivity();
+      }
+      if (tabName === "Manage" && session.role === "teacher") {
+        renderManageTeamsList();
+        renderMemberTeamFilter();
+        renderMembersTable();
       }
     }
 
