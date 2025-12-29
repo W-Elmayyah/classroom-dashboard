@@ -3,819 +3,1107 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Classroom Gamification Dashboard</title>
+  <title>Classroom Gamification Dashboard (Firebase)</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #f0f8ff; margin: 20px; }
-    h1, h2 { text-align: center; color: #333; }
-    button { padding: 8px 12px; margin: 5px; cursor: pointer; }
-    table { width: 100%; border-collapse: collapse; margin: 20px 0; background: white; }
-    th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
-    th { background: #4CAF50; color: white; }
-    input[type="text"], input[type="number"], input[type="email"], input[type="password"] { padding: 8px; }
-    input:disabled { background: #f0f0f0; }
-    .gold { background: gold !important; color: black !important; font-weight: bold; }
-    .silver { background: silver !important; color: black !important; font-weight: bold; }
-    .bronze { background: #cd7f32 !important; color: white !important; font-weight: bold; }
-    tr { cursor: pointer; transition: background 0.2s; }
-    tr:hover { background: #f9f9f9 !important; }
-    .tabs { overflow: hidden; border: 1px solid #ccc; background: #f1f1f1; }
-    .tablink { background: #ccc; float: left; border: none; outline: none; cursor: pointer; padding: 14px 16px; }
-    .tablink:hover { background: #ddd; }
-    .tablink.active { background: #fff; }
-    .tablink[disabled] { opacity: 0.5; cursor: not-allowed; }
-    .tabcontent { display: none; padding: 20px; border: 1px solid #ccc; border-top: none; background: white; }
-    .tabcontent.active { display: block; }
-    .stars { color: gold; font-size: 1.2em; }
-    .score { font-weight: bold; font-size: 1.3em; color: #2c3e50; }
-    select { padding: 8px; margin: 10px 0; font-size: 1em; }
-
-    /* Auth / header */
-    .topbar {
-      display:flex; gap:10px; justify-content:space-between; align-items:center;
-      background:#ffffffcc; border:1px solid #d9e7ff; border-radius:10px; padding:10px 12px;
-      max-width: 1100px; margin: 0 auto 15px auto;
+    :root{
+      --bg:#0b1220;
+      --panel:#0f1a33;
+      --card:#111f3e;
+      --muted:#8ea0c2;
+      --text:#e9f0ff;
+      --accent:#4ade80;
+      --accent2:#60a5fa;
+      --danger:#fb7185;
+      --border: rgba(255,255,255,0.08);
+      --shadow: 0 18px 50px rgba(0,0,0,.35);
+      --radius: 16px;
     }
-    .topbar .who { font-weight: bold; color:#2c3e50; }
-    .card {
-      max-width: 900px; margin: 10px auto; background:white; border:1px solid #ddd;
-      border-radius: 12px; padding: 16px; box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+    *{ box-sizing:border-box; }
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
+      background: radial-gradient(1200px 600px at 20% 0%, rgba(96,165,250,.25), transparent 60%),
+                  radial-gradient(900px 500px at 80% 10%, rgba(74,222,128,.20), transparent 60%),
+                  var(--bg);
+      color: var(--text);
+      padding: 28px 14px 80px;
     }
-    .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
-    .hint { color:#555; font-size: 0.95em; }
-    .pill { display:inline-block; padding: 2px 10px; border-radius: 999px; background:#eef7ee; border:1px solid #cfe9cf; font-size: 0.9em; }
-    .avatars { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
-    .avatarBtn {
-      border: 1px solid #ccc; background: #fff; border-radius: 10px;
-      padding: 8px 10px; font-size: 20px; line-height: 1;
+    .container{ max-width: 1120px; margin:0 auto; }
+    h1{
+      margin: 6px 0 8px; text-align:center; font-size: clamp(22px, 3vw, 36px);
+      letter-spacing:.2px;
     }
-    .avatarBtn.selected { border-color:#4CAF50; box-shadow: 0 0 0 3px rgba(76,175,80,0.25); }
-    .danger { background:#f44336; color:white; border:none; }
-    .primary { background:#4CAF50; color:white; border:none; }
-    .secondary { background:#1976d2; color:white; border:none; }
+    .subtitle{
+      text-align:center; color: var(--muted); margin:0 0 18px; line-height:1.4;
+    }
+    .glass{
+      background: rgba(17,31,62,0.60);
+      border:1px solid var(--border);
+      backdrop-filter: blur(10px);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .topbar{
+      display:flex; flex-wrap:wrap; gap:12px;
+      justify-content:space-between; align-items:center;
+      padding: 14px 14px;
+      margin: 14px auto 16px;
+    }
+    .who{ font-weight: 700; font-size: 14px; }
+    .hint{ color: var(--muted); font-size: 13px; }
+    .btn{
+      border:1px solid var(--border);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 12px;
+      cursor:pointer;
+      transition: transform .05s ease, background .15s ease, border-color .15s ease;
+      font-weight: 600;
+    }
+    .btn:hover{ background: rgba(255,255,255,0.10); }
+    .btn:active{ transform: translateY(1px); }
+    .btn.primary{ background: rgba(74,222,128,0.18); border-color: rgba(74,222,128,0.35); }
+    .btn.primary:hover{ background: rgba(74,222,128,0.25); }
+    .btn.blue{ background: rgba(96,165,250,0.18); border-color: rgba(96,165,250,0.35); }
+    .btn.blue:hover{ background: rgba(96,165,250,0.25); }
+    .btn.danger{ background: rgba(251,113,133,0.16); border-color: rgba(251,113,133,0.35); }
+    .btn.danger:hover{ background: rgba(251,113,133,0.24); }
+    .btn:disabled{ opacity:.5; cursor:not-allowed; }
+    .row{ display:flex; gap:12px; flex-wrap:wrap; }
+    .card{
+      padding: 14px;
+      border-radius: var(--radius);
+      border:1px solid var(--border);
+      background: rgba(17,31,62,0.55);
+      box-shadow: 0 10px 28px rgba(0,0,0,.22);
+    }
+    .authGrid{
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 12px;
+      margin: 12px 0 0;
+    }
+    input, select{
+      width:100%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      outline:none;
+    }
+    input::placeholder{ color: rgba(233,240,255,.55); }
+    select option{ color:#0b1220; }
+    .tabs{ display:flex; gap:10px; flex-wrap:wrap; margin: 14px 0 0; }
+    .tab{
+      padding: 10px 12px; border-radius: 999px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,0.06);
+      cursor:pointer; font-weight:700; font-size: 13px;
+    }
+    .tab.active{ border-color: rgba(96,165,250,0.45); background: rgba(96,165,250,0.18); }
+    .tab.hidden{ display:none; }
+    .panel{ margin-top: 12px; padding: 14px; }
+    .hidden{ display:none !important; }
 
-    /* Popup */
-    .popup { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border: 2px solid #4CAF50; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); z-index: 1000; text-align: center; max-width: 320px; }
-    .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; }
-    .close-popup { margin-top: 15px; padding: 8px 16px; background: #f44336; color: white; border: none; cursor: pointer; }
+    table{ width:100%; border-collapse: collapse; margin-top: 12px; overflow:hidden; border-radius: 14px; }
+    th, td{
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding: 10px 10px;
+      text-align: center;
+      font-size: 13px;
+    }
+    th{ font-weight: 800; background: rgba(255,255,255,0.06); }
+    tbody tr:hover{ background: rgba(255,255,255,0.04); cursor:pointer; }
 
-    .hidden { display:none !important; }
+    .rankBadge{
+      display:inline-flex; align-items:center; justify-content:center;
+      min-width:28px; height:28px;
+      border-radius: 999px;
+      font-weight: 900;
+      background: rgba(255,255,255,0.08);
+      border:1px solid var(--border);
+    }
+    .gold{ background: rgba(250,204,21,0.18) !important; }
+    .silver{ background: rgba(148,163,184,0.18) !important; }
+    .bronze{ background: rgba(251,146,60,0.18) !important; }
+
+    .gridCards{
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .teamCardHeader{ display:flex; align-items:center; justify-content:space-between; gap: 10px; }
+    .teamEmoji{ font-size: 32px; }
+    .pill{
+      display:inline-flex; align-items:center; gap:6px;
+      padding: 4px 10px; border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      border:1px solid var(--border);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight:700;
+    }
+    .avatars{ display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+    .avatarBtn{
+      border:1px solid var(--border);
+      background: rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 8px 10px;
+      font-size: 20px;
+      cursor:pointer;
+    }
+    .avatarBtn.selected{
+      border-color: rgba(74,222,128,0.55);
+      box-shadow: 0 0 0 4px rgba(74,222,128,0.18);
+      background: rgba(74,222,128,0.10);
+    }
+    .toast{
+      position: fixed; left: 50%; bottom: 18px;
+      transform: translateX(-50%);
+      background: rgba(17,31,62,0.9);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 10px 14px;
+      color: var(--text);
+      box-shadow: var(--shadow);
+      display:none;
+      max-width: 92vw;
+      font-size: 13px;
+    }
+    .overlay{
+      display:none; position: fixed; inset:0;
+      background: rgba(0,0,0,0.55);
+      z-index: 999;
+    }
+    .modal{
+      display:none; position: fixed; left: 50%; top: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 1000;
+      width: min(520px, 92vw);
+      padding: 14px;
+    }
+    .modalActions{ display:flex; justify-content:flex-end; gap:10px; margin-top: 12px; }
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
   </style>
 </head>
 
 <body>
-  <h1>🏆 Classroom Gamification Dashboard 🏆</h1>
-  <p style="text-align:center; font-size:1.1em;">
-    Scoring: 1 XP = 1 point | 1 Star = 5 points<br />
-    <em>Click any team row to see score breakdown</em>
-  </p>
+  <div class="container">
+    <h1>🏆 Classroom Gamification Dashboard</h1>
+    <p class="subtitle">
+      Scoring: <b>1 XP = 1 point</b> · <b>1 Star = 5 points</b><br/>
+      <span class="hint">Students: Dashboard only · Teacher: full access (Teams, Activities, Members)</span>
+    </p>
 
-  <!-- Auth / Session Bar -->
-  <div class="topbar" id="topbar">
-    <div>
-      <div class="who" id="whoami">Not signed in</div>
-      <div class="hint" id="rolehint">Students can view the Dashboard only. Teacher can manage & grade.</div>
-    </div>
-    <div>
-      <button class="secondary" onclick="showAuth()">Sign in / Register</button>
-      <button class="danger hidden" id="logoutBtn" onclick="logout()">Logout</button>
-    </div>
-  </div>
-
-  <!-- Auth Panel -->
-  <div class="card" id="authCard">
-    <h2>Sign in / Register</h2>
-    <div class="grid">
-      <div style="border-right:1px dashed #ddd; padding-right:12px;">
-        <h3>Student login</h3>
-        <p class="hint">Enter the email you used to register.</p>
-        <input type="email" id="loginEmail" placeholder="student@email.com" style="width:100%;" />
-        <button class="primary" style="width:100%; margin-top:8px;" onclick="loginStudent()">Login as Student</button>
-      </div>
-
-      <div style="border-right:1px dashed #ddd; padding-right:12px;">
-        <h3>Teacher login</h3>
-        <p class="hint">Teacher can access all pages. Change the PIN in the code.</p>
-        <input type="password" id="teacherPin" placeholder="Teacher PIN" style="width:100%;" />
-        <button class="primary" style="width:100%; margin-top:8px;" onclick="loginTeacher()">Login as Teacher</button>
-        <p class="hint" style="margin-top:8px;"><span class="pill">Default PIN: 1234</span></p>
-      </div>
-
+    <div class="topbar glass" id="topbar">
       <div>
-        <h3>Student registration</h3>
-        <p class="hint">Register with your name + email, choose a team and an avatar.</p>
-        <input type="text" id="regName" placeholder="Full name" style="width:100%; margin-bottom:8px;" />
-        <input type="email" id="regEmail" placeholder="Email" style="width:100%; margin-bottom:8px;" />
-        
-        <div style="margin-bottom:8px;">
-          <div class="hint" style="margin-bottom:6px;">Team choice:</div>
-          <label style="display:block; margin:4px 0;">
+        <div class="who" id="whoami">Not signed in</div>
+        <div class="hint" id="rolehint">Sign in to start.</div>
+      </div>
+      <div class="row">
+        <button class="btn blue" id="openAuthBtn" onclick="toggleAuth(true)">Sign in / Register</button>
+        <button class="btn danger hidden" id="logoutBtn" onclick="logout()">Logout</button>
+      </div>
+    </div>
+
+    <div class="card glass" id="authCard">
+      <div style="display:flex; justify-content:space-between; gap:10px; align-items:center;">
+        <div>
+          <div style="font-weight:900; font-size:16px;">Sign in / Register</div>
+          <div class="hint">Uses Firebase Auth (email + password). Your data syncs for everyone.</div>
+        </div>
+        <button class="btn" onclick="toggleAuth(false)">Close</button>
+      </div>
+
+      <div class="authGrid">
+        <div class="card">
+          <div style="font-weight:800; margin-bottom:8px;">Login</div>
+          <input type="email" id="loginEmail" placeholder="Email" />
+          <div style="height:8px;"></div>
+          <input type="password" id="loginPass" placeholder="Password" />
+          <div style="height:10px;"></div>
+          <button class="btn primary" style="width:100%;" onclick="login()">Login</button>
+          <div class="hint" style="margin-top:8px;">Forgot password? Add reset later if needed.</div>
+        </div>
+
+        <div class="card">
+          <div style="font-weight:800; margin-bottom:8px;">Student registration</div>
+          <input type="text" id="regName" placeholder="Full name" />
+          <div style="height:8px;"></div>
+          <input type="email" id="regEmail" placeholder="Email" />
+          <div style="height:8px;"></div>
+          <input type="password" id="regPass" placeholder="Password (min 6 chars)" />
+          <div style="height:10px;"></div>
+
+          <div class="hint" style="margin-bottom:6px;">Team choice</div>
+          <label class="hint" style="display:block; margin:4px 0;">
             <input type="radio" name="teamMode" value="existing" checked onchange="toggleTeamMode()"> Join an existing team
           </label>
-          <select id="regTeamSelect" style="width:100%; margin:6px 0;" onchange="syncTeamNameFromMode()"></select>
+          <select id="regTeamSelect" onchange="syncTeamNameFromMode()"></select>
 
-          <label style="display:block; margin:8px 0 4px 0;">
+          <label class="hint" style="display:block; margin:10px 0 4px;">
             <input type="radio" name="teamMode" value="new" onchange="toggleTeamMode()"> Create a new team
           </label>
-          <input type="text" id="regTeamNew" placeholder="New team name" oninput="syncTeamNameFromMode()" style="width:100%; margin-bottom:6px;" />
+          <input type="text" id="regTeamNew" placeholder="New team name" oninput="syncTeamNameFromMode()" />
           <input type="hidden" id="regTeam" />
-          <div class="hint">Tip: if no teams exist yet, create a new one.</div>
+
+          <div class="hint" style="margin-top:10px;">Choose an avatar</div>
+          <div class="avatars" id="avatarPicker"></div>
+          <input type="hidden" id="regAvatar" />
+
+          <div style="height:10px;"></div>
+          <button class="btn primary" style="width:100%;" onclick="registerStudent()">Register</button>
+          <div class="hint" id="regMsg" style="margin-top:8px;"></div>
         </div>
-<div class="hint">Choose an avatar:</div>
-        <div class="avatars" id="avatarPicker"></div>
-        <input type="hidden" id="regAvatar" />
-        <button class="primary" style="width:100%; margin-top:10px;" onclick="registerStudent()">Register</button>
-        <div class="hint" id="regMsg" style="margin-top:8px;"></div>
+
+        <div class="card">
+          <div style="font-weight:800; margin-bottom:8px;">Teacher setup</div>
+          <div class="hint" style="line-height:1.5;">
+            Teacher access is controlled by Firestore:
+            <div class="mono" style="margin-top:6px;">
+              users/&lt;uid&gt; : { role: "teacher" }
+            </div>
+            Create your teacher account, then open Firebase Console → Firestore → users → set role to <b>teacher</b>.
+          </div>
+          <div style="height:10px;"></div>
+          <button class="btn blue" style="width:100%;" onclick="toast('After logging in as teacher, set role=teacher in Firestore users collection.')">How teacher works</button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- App Tabs -->
-  <div class="tabs" id="appTabs">
-    <button class="tablink active" id="tabDashboard" onclick="openTab(event, 'Dashboard')">Main Dashboard</button>
-    <button class="tablink" id="tabActivities" onclick="openTab(event, 'Activities')">Activities & Grading</button>
-    <button class="tablink" id="tabManage" onclick="openTab(event, 'Manage')">Manage Teams & Activities</button>
-  </div>
-
-  <!-- Main Dashboard Tab -->
-  <div id="Dashboard" class="tabcontent active">
-    <h2>Global Leaderboard</h2>
-    <table id="leaderboardTable">
-      <thead>
-        <tr>
-          <th>Rank</th><th>Team</th><th>Total Score</th><th>Total XP</th><th>Total Stars</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-
-    <div class="card">
-      <h3>Teams (avatars & members)</h3>
-      <div id="teamCards" class="grid"></div>
-      <div class="hint" style="margin-top:8px;">(Students register themselves. Teacher can still add teams manually.)</div>
+    <div class="tabs">
+      <button class="tab active" id="tabDashboard" onclick="openTab('Dashboard')">Dashboard</button>
+      <button class="tab hidden" id="tabActivities" onclick="openTab('Activities')">Activities & Grading</button>
+      <button class="tab hidden" id="tabManage" onclick="openTab('Manage')">Manage</button>
     </div>
-  </div>
 
-  <!-- Activities Tab -->
-  <div id="Activities" class="tabcontent">
-    <h2>Activities & Grading</h2>
+    <div id="Dashboard" class="panel glass">
+      <div style="display:flex; justify-content:space-between; align-items:end; gap:10px; flex-wrap:wrap;">
+        <div>
+          <div style="font-weight:900; font-size:18px;">Global Leaderboard</div>
+          <div class="hint">Click a team row to see score breakdown.</div>
+        </div>
+        <div class="pill" id="syncStatus">🔄 Sync: connecting…</div>
+      </div>
 
-    <p id="activitiesDenied" class="hint hidden">Teacher only.</p>
+      <table>
+        <thead>
+          <tr>
+            <th style="width:90px;">Rank</th>
+            <th style="text-align:left;">Team</th>
+            <th>Total Score</th>
+            <th>Total XP</th>
+            <th>Total Stars</th>
+          </tr>
+        </thead>
+        <tbody id="leaderboardBody">
+          <tr><td colspan="5" class="hint">Loading…</td></tr>
+        </tbody>
+      </table>
 
-    <div id="activitiesTeacherOnly">
-      <select id="activitySelect" onchange="loadActivity()"></select>
+      <div style="height:14px;"></div>
 
-      <div id="activityContainer" style="display:none;">
-        <h3 id="currentActivityName"></h3>
-        <table id="activityTable">
+      <div class="card">
+        <div style="font-weight:900;">Teams (members)</div>
+        <div class="gridCards" id="teamCards"></div>
+      </div>
+    </div>
+
+    <div id="Activities" class="panel glass hidden">
+      <div style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; align-items:end;">
+        <div>
+          <div style="font-weight:900; font-size:18px;">Activities & Grading</div>
+          <div class="hint">Teacher only. Select an activity to grade teams.</div>
+        </div>
+        <div style="min-width:260px;">
+          <select id="activitySelect" onchange="loadActivity()"></select>
+        </div>
+      </div>
+
+      <div id="activityContainer" class="card" style="margin-top:12px; display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+          <div style="font-weight:900;" id="currentActivityName">Grading</div>
+          <div class="hint">Changes sync instantly.</div>
+        </div>
+
+        <table>
           <thead>
-            <tr><th>Team</th><th>Attendance</th><th>XP (0-10)</th><th>Stars (0-3)</th><th>Feedback</th></tr>
+            <tr>
+              <th style="text-align:left;">Team</th>
+              <th>Attend</th>
+              <th>XP (0–10)</th>
+              <th>Stars (0–3)</th>
+              <th style="text-align:left;">Feedback</th>
+            </tr>
           </thead>
-          <tbody></tbody>
+          <tbody id="activityTbody"></tbody>
         </table>
       </div>
-      <p id="noActivityMessage">← Select an activity from the dropdown to start grading.</p>
+
+      <div id="noActivityMessage" class="hint" style="margin-top:14px;">← Select an activity to start grading.</div>
     </div>
-  </div>
 
-  <!-- Manage Tab -->
-  <div id="Manage" class="tabcontent">
-    <h2>Manage Teams & Activities</h2>
+    <div id="Manage" class="panel glass hidden">
+      <div style="font-weight:900; font-size:18px;">Manage (Teacher)</div>
+      <div class="hint">Teams, activities, and students. Changes sync instantly.</div>
 
-    <p id="manageDenied" class="hint hidden">Teacher only.</p>
+      <div class="authGrid" style="margin-top:12px;">
+        <div class="card">
+          <div style="font-weight:800; margin-bottom:8px;">Add team</div>
+          <input type="text" id="newTeam" placeholder="Team name" />
+          <div style="height:10px;"></div>
+          <button class="btn primary" style="width:100%;" onclick="addTeam()">Add Team</button>
+        </div>
 
-    <div id="manageTeacherOnly">
-      <div>
-        <h3>Add Team (Teacher)</h3>
-        <input type="text" id="newTeam" placeholder="Team Name">
-        <button onclick="addTeam()">Add Team</button>
+        <div class="card">
+          <div style="font-weight:800; margin-bottom:8px;">Add activity</div>
+          <input type="text" id="newActivity" placeholder="Activity name (e.g., Activity 01)" />
+          <div style="height:10px;"></div>
+          <button class="btn primary" style="width:100%;" onclick="addActivity()">Add Activity</button>
+          <div class="hint" style="margin-top:8px;">Tip: Create activities before grading.</div>
+        </div>
+
+        <div class="card">
+          <div style="font-weight:800; margin-bottom:8px;">Danger zone</div>
+          <button class="btn danger" style="width:100%;" onclick="resetAllFirebase()">Reset ALL Cloud Data</button>
+          <div class="hint" style="margin-top:8px;">Deletes teams, activities, scores, users metadata (not auth accounts).</div>
+        </div>
       </div>
 
-      <hr style="margin:22px 0; border:none; border-top:1px solid #eee;">
+      <div style="height:12px;"></div>
 
-      <div>
-        <h3>Manage Teams (Teacher)</h3>
-        <p class="hint">Rename or delete teams. Deleting a team can also delete its registered members on this browser.</p>
-        <div id="manageTeamsList" class="card" style="margin:0; padding:12px;"></div>
+      <div class="card">
+        <div style="font-weight:900;">Manage teams</div>
+        <div class="hint">Rename or delete teams (deleting also removes team scores and clears users' team).</div>
+        <div id="manageTeamsList" style="margin-top:10px;"></div>
       </div>
 
-      <hr style="margin:22px 0; border:none; border-top:1px solid #eee;">
+      <div style="height:12px;"></div>
 
-      <div>
-        <h3>Manage Students / Members (Teacher)</h3>
-        <p class="hint">Edit student details (name, avatar, team) or remove a student.</p>
-
-        <div class="grid" style="align-items:end;">
-          <div>
+      <div class="card">
+        <div style="font-weight:900;">Manage users</div>
+        <div class="row" style="align-items:end; margin-top:10px;">
+          <div style="min-width:220px; flex:1;">
             <div class="hint">Filter by team</div>
-            <select id="memberTeamFilter" style="width:100%;" onchange="renderMembersTable()"></select>
+            <select id="memberTeamFilter" onchange="renderMembersTable()"></select>
           </div>
-          <div>
-            <div class="hint">Search (name or email)</div>
-            <input type="text" id="memberSearch" placeholder="Type to search..." style="width:100%;" oninput="renderMembersTable()">
+          <div style="min-width:260px; flex:2;">
+            <div class="hint">Search</div>
+            <input type="text" id="memberSearch" placeholder="Search name or email..." oninput="renderMembersTable()" />
           </div>
         </div>
 
-        <div class="card" style="margin:12px 0 0 0; padding:12px; overflow:auto;">
-          <table style="min-width:720px; margin:0;">
+        <div style="overflow:auto; margin-top:12px;">
+          <table style="min-width:780px;">
             <thead>
               <tr>
-                <th style="min-width:160px;">Name</th>
-                <th style="min-width:220px;">Email</th>
-                <th style="min-width:160px;">Team</th>
-                <th style="min-width:80px;">Avatar</th>
-                <th style="min-width:220px;">Actions</th>
+                <th style="text-align:left;">Name</th>
+                <th style="text-align:left;">Email</th>
+                <th>Team</th>
+                <th>Avatar</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody id="membersTbody"></tbody>
           </table>
         </div>
       </div>
+    </div>
+  </div>
 
+  <div class="overlay" id="overlay" onclick="closeModal()"></div>
+  <div class="modal card glass" id="modal">
+    <div id="modalTitle" style="font-weight:900; font-size:16px;">Details</div>
+    <div id="modalBody" class="hint" style="margin-top:10px; line-height:1.55;"></div>
+    <div class="modalActions">
+      <button class="btn" onclick="closeModal()">Close</button>
+    </div>
+  </div>
 
-      <div style="margin-top: 20px;">
-        <h3>Add Activity (Teacher)</h3>
-        <input type="text" id="newActivity" placeholder="Activity Name (e.g., Activity 01)">
-        <button onclick="addActivity()">Add Activity</button>
-        <p>Maximum 20 activities.</p>
+  <div class="overlay" id="memberOverlay" onclick="closeMemberModal()"></div>
+  <div class="modal card glass" id="memberModal" style="width:min(560px, 92vw);">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+      <div>
+        <div style="font-weight:900; font-size:16px;">Edit user</div>
+        <div class="hint" id="editMemberEmailHint"></div>
       </div>
+      <button class="btn" onclick="closeMemberModal()">Close</button>
+    </div>
 
-      <div style="margin-top: 30px;">
-        <button onclick="resetAll()" class="danger">Reset All Data (Caution!)</button>
-      </div>
+    <div style="height:10px;"></div>
+
+    <div class="hint">Name</div>
+    <input type="text" id="editMemberName" />
+
+    <div style="height:10px;"></div>
+
+    <div class="hint">Team</div>
+    <select id="editMemberTeam"></select>
+    <div style="height:6px;"></div>
+    <div class="hint">Or create new team</div>
+    <input type="text" id="editMemberNewTeam" placeholder="New team name (optional)" />
+
+    <div style="height:10px;"></div>
+
+    <div class="hint">Avatar</div>
+    <div class="avatars" id="editAvatarPicker"></div>
+    <input type="hidden" id="editMemberAvatar" />
+
+    <div class="modalActions">
+      <button class="btn danger" onclick="closeMemberModal()">Cancel</button>
+      <button class="btn primary" onclick="saveMemberEdits()">Save</button>
     </div>
   </div>
 
-  <!-- Popup Overlay -->
-  <div id="overlay" class="overlay" onclick="closePopup()"></div>
-  <div id="popup" class="popup">
-    <h3 id="popupTeam"></h3>
-    <p id="popupDetails" style="font-size:1.2em;"></p>
-    <button class="close-popup" onclick="closePopup()">Close</button>
-  </div>
-  <!-- Member Edit Modal -->
-  <div id="memberOverlay" class="overlay" onclick="closeMemberModal()"></div>
-  <div id="memberModal" class="popup" style="max-width:420px; text-align:left;">
-    <h3 style="margin-top:0;">Edit Student</h3>
-    <div class="hint" id="editMemberEmailHint" style="margin-bottom:10px;"></div>
+  <div class="toast" id="toast"></div>
 
-    <div style="margin-bottom:10px;">
-      <div class="hint">Name</div>
-      <input type="text" id="editMemberName" style="width:100%;">
-    </div>
-
-    <div style="margin-bottom:10px;">
-      <div class="hint">Team</div>
-      <select id="editMemberTeam" style="width:100%;"></select>
-      <div class="hint" style="margin-top:6px;">Or create new team:</div>
-      <input type="text" id="editMemberNewTeam" placeholder="New team name (optional)" style="width:100%;" oninput="syncEditTeamChoice()">
-    </div>
-
-    <div style="margin-bottom:10px;">
-      <div class="hint">Avatar</div>
-      <div class="avatars" id="editAvatarPicker"></div>
-      <input type="hidden" id="editMemberAvatar">
-    </div>
-
-    <div style="display:flex; gap:10px; justify-content:flex-end;">
-      <button class="danger" onclick="closeMemberModal()">Cancel</button>
-      <button class="primary" onclick="saveMemberEdits()">Save</button>
-    </div>
-  </div>
-
-
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
   <script>
-    /**********************
-     *  SIMPLE ROLE SYSTEM
-     *  - Teacher: PIN-based
-     *  - Students: register with email/name/team/avatar
-     *  Storage: localStorage only (single-device)
-     **********************/
-
-    const TEACHER_PIN = "1411"; // ✅ Change this before using in class
+    const firebaseConfig = {
+      apiKey: "PASTE_API_KEY",
+      authDomain: "PASTE_AUTH_DOMAIN",
+      projectId: "PASTE_PROJECT_ID",
+      storageBucket: "PASTE_STORAGE_BUCKET",
+      messagingSenderId: "PASTE_SENDER_ID",
+      appId: "PASTE_APP_ID",
+    };
 
     const AVATARS = ["🦁","🦊","🐯","🐼","🐸","🦉","🐺","🐲","🦅","🐙","🐝","🦄","🐬","🐢","🦖","🐨"];
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
 
-    // App data (teams/activities/scores) as in your original file
-    let data = { teams: [], activities: [], scores: {}, teamMeta: {} };
+    let state = { teams: [], activities: [], users: {}, role:"guest", me:null };
+    let unsub = [];
+    let currentActivityId = "";
+    window.__scores = {};
 
-    // Users: { [email]: {name,email,team,avatar,role:"student"} }
-    let users = {};
-
-    // Session: { role:"guest"|"student"|"teacher", email?: string }
-    let session = { role: "guest", email: null };
-
-    let currentActivity = null;
-
-    /* ---------- Storage ---------- */
-    function loadAll() {
-      // core game data
-      const saved = localStorage.getItem("classroomDataV2");
-      if (saved) {
-        try { data = JSON.parse(saved); } catch(e) {}
-      }
-      // users
-      const savedUsers = localStorage.getItem("classroomUsersV2");
-      if (savedUsers) {
-        try { users = JSON.parse(savedUsers); } catch(e) {}
-      }
-      // session
-      const savedSession = localStorage.getItem("classroomSessionV2");
-      if (savedSession) {
-        try { session = JSON.parse(savedSession); } catch(e) {}
-      }
-
-      // backward compatibility (if you had older key)
-      const legacy = localStorage.getItem("classroomData");
-      if (!saved && legacy) {
-        try {
-          const old = JSON.parse(legacy);
-          // migrate minimal fields
-          data.teams = old.teams || [];
-          data.activities = old.activities || [];
-          data.scores = old.scores || {};
-          data.teamMeta = data.teamMeta || {};
-          saveData();
-        } catch(e) {}
-      }
-
-      renderAvatarPicker();
-      renderTeamSelect();
-      toggleTeamMode();
-      enforceRoleUI();
-      updateAll();
+    function escapeHtml(s) {
+      return String(s ?? "")
+        .replaceAll("&","&amp;").replaceAll("<","&lt;")
+        .replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
+    }
+    function toast(msg){
+      const t = document.getElementById("toast");
+      t.textContent = msg;
+      t.style.display = "block";
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => t.style.display = "none", 3000);
+    }
+    function showSync(ok=true){
+      const el = document.getElementById("syncStatus");
+      el.textContent = ok ? "✅ Sync: live" : "🔄 Sync: connecting…";
+    }
+    function openModal(title, html){
+      document.getElementById("modalTitle").textContent = title;
+      document.getElementById("modalBody").innerHTML = html;
+      document.getElementById("overlay").style.display = "block";
+      document.getElementById("modal").style.display = "block";
+    }
+    function closeModal(){
+      document.getElementById("overlay").style.display = "none";
+      document.getElementById("modal").style.display = "none";
+    }
+    function toggleAuth(show){
+      document.getElementById("authCard").classList.toggle("hidden", !show);
+      if (show) window.scrollTo({top:0, behavior:"smooth"});
     }
 
-    function saveData() {
-      localStorage.setItem("classroomDataV2", JSON.stringify(data));
-      updateLeaderboard();
-      if (currentActivity) loadActivity();
-      renderTeamCards();
-      renderTeamSelect();
-    }
-
-    function saveUsers() {
-      localStorage.setItem("classroomUsersV2", JSON.stringify(users));
-      renderTeamCards();
-    }
-
-    function saveSession() {
-      localStorage.setItem("classroomSessionV2", JSON.stringify(session));
-      enforceRoleUI();
-    }
-
-    /* ---------- Auth UI ---------- */
-    function showAuth() {
-      document.getElementById("authCard").classList.remove("hidden");
-      window.scrollTo({top:0, behavior:"smooth"});
-    }
-
-    function setRegMsg(msg, isError=false) {
+    function setRegMsg(msg, isError=false){
       const el = document.getElementById("regMsg");
       el.textContent = msg;
-      el.style.color = isError ? "#b00020" : "#2e7d32";
+      el.style.color = isError ? "#fecaca" : "#bbf7d0";
     }
 
-    function renderAvatarPicker() {
+    function renderAvatarPicker(){
       const wrap = document.getElementById("avatarPicker");
       wrap.innerHTML = "";
       const hidden = document.getElementById("regAvatar");
-
-      // default selection
       if (!hidden.value) hidden.value = AVATARS[0];
-
       AVATARS.forEach(a => {
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "avatarBtn" + (hidden.value === a ? " selected" : "");
         btn.textContent = a;
-        btn.onclick = () => {
-          hidden.value = a;
-          // re-render selection state
-          renderAvatarPicker();
-        };
+        btn.onclick = () => { hidden.value = a; renderAvatarPicker(); };
         wrap.appendChild(btn);
       });
     }
 
-
-    function renderTeamSelect() {
+    function renderTeamSelect(){
       const sel = document.getElementById("regTeamSelect");
-      if (!sel) return;
-
       const prev = sel.value;
       sel.innerHTML = "";
-
       const placeholder = document.createElement("option");
       placeholder.value = "";
-      placeholder.textContent = (data.teams && data.teams.length) ? "-- Select a team --" : "-- No teams yet --";
+      placeholder.textContent = state.teams.length ? "-- Select a team --" : "-- No teams yet --";
       sel.appendChild(placeholder);
-
-      (data.teams || []).forEach(t => {
+      state.teams.forEach(t => {
         const opt = document.createElement("option");
-        opt.value = t;
-        opt.textContent = t;
+        opt.value = t.id;
+        opt.textContent = t.name;
         sel.appendChild(opt);
       });
-
-      if (prev && (data.teams || []).includes(prev)) sel.value = prev;
-
+      if (prev && state.teams.some(t => t.id === prev)) sel.value = prev;
       syncTeamNameFromMode();
     }
 
-    function toggleTeamMode() {
+    function toggleTeamMode(){
       const mode = document.querySelector('input[name="teamMode"]:checked')?.value || "existing";
-      const sel = document.getElementById("regTeamSelect");
-      const inp = document.getElementById("regTeamNew");
-
-      if (sel) sel.disabled = (mode !== "existing");
-      if (inp) inp.disabled = (mode !== "new");
-
+      document.getElementById("regTeamSelect").disabled = (mode !== "existing");
+      document.getElementById("regTeamNew").disabled = (mode !== "new");
       syncTeamNameFromMode();
     }
 
-    function syncTeamNameFromMode() {
+    function syncTeamNameFromMode(){
       const mode = document.querySelector('input[name="teamMode"]:checked')?.value || "existing";
-      const sel = document.getElementById("regTeamSelect");
-      const inp = document.getElementById("regTeamNew");
       const hidden = document.getElementById("regTeam");
-
-      let teamName = "";
-      if (mode === "existing") teamName = (sel?.value || "").trim();
-      else teamName = (inp?.value || "").trim();
-
-      if (hidden) hidden.value = teamName;
+      const selectedTeamId = document.getElementById("regTeamSelect").value;
+      const newTeamName = document.getElementById("regTeamNew").value.trim();
+      hidden.value = mode === "existing" ? selectedTeamId : newTeamName;
     }
 
-    function getTeamFromRegistration() {
-      syncTeamNameFromMode();
-      return (document.getElementById("regTeam")?.value || "").trim();
+    function slugify(name){
+      return String(name).trim().toLowerCase()
+        .replaceAll(/[^a-z0-9]+/g, "-")
+        .replaceAll(/(^-|-$)/g, "")
+        .slice(0, 40) || ("team-" + Math.random().toString(36).slice(2,8));
     }
-    function registerStudent() {
+
+    function requireTeacher(){
+      if (state.role !== "teacher") { toast("Teacher only."); return false; }
+      return true;
+    }
+
+    async function registerStudent(){
       const name = document.getElementById("regName").value.trim();
       const email = document.getElementById("regEmail").value.trim().toLowerCase();
-      const team = getTeamFromRegistration();
+      const pass = document.getElementById("regPass").value;
       const avatar = document.getElementById("regAvatar").value || AVATARS[0];
 
-      if (!name || !email) {
-        setRegMsg("Please enter your name and email.", true);
-        return;
-      }
+      syncTeamNameFromMode();
       const mode = document.querySelector('input[name="teamMode"]:checked')?.value || "existing";
-      if (!team) {
-        setRegMsg(mode === "existing" ? "Please select an existing team, or switch to Create a new team." : "Please enter a new team name.", true);
-        return;
+      const teamChoice = document.getElementById("regTeam").value.trim();
+
+      if (!name || !email || !pass) return setRegMsg("Please enter name, email, and password.", true);
+      if (!/^\S+@\S+\.\S+$/.test(email)) return setRegMsg("Please enter a valid email.", true);
+      if (pass.length < 6) return setRegMsg("Password must be at least 6 characters.", true);
+
+      if (!teamChoice) {
+        return setRegMsg(mode === "existing"
+          ? "Please select a team, or switch to Create a new team."
+          : "Please enter a new team name.", true);
       }
-      if (!/^\S+@\S+\.\S+$/.test(email)) {
-        setRegMsg("Please enter a valid email address.", true);
-        return;
+
+      try{
+        setRegMsg("Creating account…");
+        const cred = await auth.createUserWithEmailAndPassword(email, pass);
+
+        let teamId = "";
+        if (mode === "existing") {
+          teamId = teamChoice;
+          if (!state.teams.some(t => t.id === teamId)) throw new Error("Selected team no longer exists. Try again.");
+        } else {
+          const newName = teamChoice;
+          teamId = slugify(newName);
+          await db.collection("teams").doc(teamId).set({
+            name: newName, avatar: avatar,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
+        }
+
+        await db.collection("users").doc(cred.user.uid).set({
+          name, email, teamId, avatar,
+          role: "student",
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+
+        setRegMsg("Registered! You are now signed in.");
+        toggleAuth(false);
+        toast("Welcome!");
+      } catch(e){
+        console.error(e);
+        setRegMsg(e.message || "Registration failed.", true);
       }
-      if (users[email]) {
-        setRegMsg("This email is already registered. Please login.", true);
-        return;
-      }
-
-      // create user
-      users[email] = { name, email, team, avatar, role: "student" };
-      saveUsers();
-
-      // ensure team exists and store avatar/meta
-      ensureTeam(team, avatar);
-      // optional: store member list per team
-      if (!data.teamMeta[team]) data.teamMeta[team] = { avatar: avatar, members: [] };
-      if (!data.teamMeta[team].members) data.teamMeta[team].members = [];
-      data.teamMeta[team].avatar = data.teamMeta[team].avatar || avatar;
-      data.teamMeta[team].members.push({ name, email, avatar });
-      saveData();
-
-      // clear fields
-      document.getElementById("regName").value = "";
-      document.getElementById("regEmail").value = "";
-      document.getElementById("regTeam").value = "";
-      document.getElementById("regTeamNew").value = "";
-      document.querySelector('input[name="teamMode"][value="existing"]').checked = true;
-      toggleTeamMode();
-      renderTeamSelect();
-      document.getElementById("regAvatar").value = AVATARS[0];
-      renderAvatarPicker();
-
-      setRegMsg("Registered successfully! Now login with your email.");
     }
 
-    function loginStudent() {
+    async function login(){
       const email = document.getElementById("loginEmail").value.trim().toLowerCase();
-      if (!email) return alert("Enter your email.");
-      if (!users[email]) return alert("Email not registered. Please register first.");
-
-      session = { role: "student", email };
-      saveSession();
-      document.getElementById("authCard").classList.add("hidden");
-      openTabFake("Dashboard");
+      const pass = document.getElementById("loginPass").value;
+      if (!email || !pass) return toast("Enter email and password.");
+      try{
+        await auth.signInWithEmailAndPassword(email, pass);
+        toggleAuth(false);
+      } catch(e){
+        console.error(e);
+        toast(e.message || "Login failed.");
+      }
     }
 
-    function loginTeacher() {
-      const pin = document.getElementById("teacherPin").value.trim();
-      if (pin !== TEACHER_PIN) return alert("Incorrect teacher PIN.");
-
-      session = { role: "teacher", email: null };
-      saveSession();
-      document.getElementById("teacherPin").value = "";
-      document.getElementById("authCard").classList.add("hidden");
-      openTabFake("Dashboard");
+    async function logout(){
+      await auth.signOut();
+      toast("Signed out.");
     }
 
-    function logout() {
-      session = { role: "guest", email: null };
-      saveSession();
-      showAuth();
-      openTabFake("Dashboard");
+    function clearListeners(){
+      unsub.forEach(fn => { try{ fn(); }catch(e){} });
+      unsub = [];
     }
 
-    function enforceRoleUI() {
+    function setRoleUI(){
       const who = document.getElementById("whoami");
-      const roleHint = document.getElementById("rolehint");
+      const rolehint = document.getElementById("rolehint");
       const logoutBtn = document.getElementById("logoutBtn");
-
+      const openAuthBtn = document.getElementById("openAuthBtn");
       const tabActivities = document.getElementById("tabActivities");
       const tabManage = document.getElementById("tabManage");
 
-      if (session.role === "teacher") {
-        who.textContent = "Signed in as: Teacher";
-        roleHint.textContent = "Teacher mode: full access (Dashboard + Activities + Manage).";
+      if (state.role === "teacher") {
+        who.textContent = `Signed in as: Teacher (${state.me?.email || ""})`;
+        rolehint.textContent = "Teacher mode: full access.";
         logoutBtn.classList.remove("hidden");
-        tabActivities.disabled = false;
-        tabManage.disabled = false;
+        openAuthBtn.classList.add("hidden");
         tabActivities.classList.remove("hidden");
         tabManage.classList.remove("hidden");
-      } else if (session.role === "student") {
-        const u = users[session.email];
-        who.textContent = u ? `Signed in as: ${u.name} (${u.email}) — Team: ${u.team} ${u.avatar}` : "Signed in as: Student";
-        roleHint.textContent = "Student mode: Dashboard only (read-only).";
+      } else if (state.role === "student") {
+        const teamName = state.teams.find(t => t.id === state.me?.teamId)?.name || state.me?.teamId || "";
+        who.textContent = `Signed in as: ${state.me?.name || "Student"} — ${state.me?.avatar || ""} (${state.me?.email || ""})`;
+        rolehint.textContent = `Student mode: Dashboard only. Team: ${teamName || "—"}`;
         logoutBtn.classList.remove("hidden");
-        // Hide/disable teacher tabs
-        tabActivities.disabled = true;
-        tabManage.disabled = true;
+        openAuthBtn.classList.add("hidden");
         tabActivities.classList.add("hidden");
         tabManage.classList.add("hidden");
-        // If student somehow is on other tabs, force dashboard
-        openTabFake("Dashboard");
+        openTab("Dashboard");
       } else {
         who.textContent = "Not signed in";
-        roleHint.textContent = "Please sign in. Students: Dashboard only. Teacher: full access.";
+        rolehint.textContent = "Sign in to start. Students: Dashboard only · Teacher: full access.";
         logoutBtn.classList.add("hidden");
-        tabActivities.disabled = true;
-        tabManage.disabled = true;
+        openAuthBtn.classList.remove("hidden");
         tabActivities.classList.add("hidden");
         tabManage.classList.add("hidden");
-        openTabFake("Dashboard");
-      setTeacherOnlyVisibility();
-      renderManageTeamsList();
-      renderMemberTeamFilter();
-      renderMembersTable();
-
-      }
-
-    function setTeacherOnlyVisibility() {
-      const isTeacher = session.role === "teacher";
-
-      // Activities
-      const aDenied = document.getElementById("activitiesDenied");
-      const aWrap = document.getElementById("activitiesTeacherOnly");
-      if (aDenied && aWrap) {
-        aDenied.classList.toggle("hidden", isTeacher);
-        aWrap.classList.toggle("hidden", !isTeacher);
-      }
-
-      // Manage
-      const mDenied = document.getElementById("manageDenied");
-      const mWrap = document.getElementById("manageTeacherOnly");
-      if (mDenied && mWrap) {
-        mDenied.classList.toggle("hidden", isTeacher);
-        mWrap.classList.toggle("hidden", !isTeacher);
+        openTab("Dashboard");
       }
     }
+
+    function openTab(name){
+      ["Dashboard","Activities","Manage"].forEach(id => {
+        document.getElementById(id).classList.toggle("hidden", id !== name);
+      });
+      document.getElementById("tabDashboard").classList.toggle("active", name==="Dashboard");
+      document.getElementById("tabActivities").classList.toggle("active", name==="Activities");
+      document.getElementById("tabManage").classList.toggle("active", name==="Manage");
     }
 
-    
-    /* ---------- Teacher management (teams & members) ---------- */
+    function startRealtime(){
+      clearListeners();
+      showSync(false);
 
-    function renderManageTeamsList() {
-      const wrap = document.getElementById("manageTeamsList");
-      if (!wrap) return;
+      unsub.push(db.collection("teams").onSnapshot(snap => {
+        const arr = [];
+        snap.forEach(doc => {
+          const d = doc.data() || {};
+          arr.push({ id: doc.id, name: d.name || doc.id, avatar: d.avatar || "👥" });
+        });
+        arr.sort((a,b) => a.name.localeCompare(b.name));
+        state.teams = arr;
+        renderTeamSelect();
+        renderTeamCards();
+        updateLeaderboard();
+        renderManageTeamsList();
+        renderMemberTeamFilter();
+        renderMembersTable();
+      }));
 
-      if (session.role !== "teacher") {
-        wrap.innerHTML = "<div class='hint'>Teacher only.</div>";
+      unsub.push(db.collection("activities").onSnapshot(snap => {
+        const arr = [];
+        snap.forEach(doc => {
+          const d = doc.data() || {};
+          arr.push({ id: doc.id, name: d.name || doc.id });
+        });
+        arr.sort((a,b) => a.name.localeCompare(b.name));
+        state.activities = arr;
+        renderActivitySelect();
+        updateLeaderboard();
+      }));
+
+      unsub.push(db.collection("users").onSnapshot(snap => {
+        const u = {};
+        snap.forEach(doc => u[doc.id] = doc.data() || {});
+        state.users = u;
+        renderTeamCards();
+        renderManageTeamsList();
+        renderMemberTeamFilter();
+        renderMembersTable();
+      }));
+
+      unsub.push(db.collection("scores").onSnapshot(snap => {
+        window.__scores = {};
+        snap.forEach(doc => window.__scores[doc.id] = doc.data() || {});
+        updateLeaderboard();
+        if (state.role === "teacher" && currentActivityId) loadActivity();
+      }));
+
+      showSync(true);
+    }
+
+    function getTeamMembers(teamId){
+      return Object.values(state.users || {}).filter(u => u.role === "student" && u.teamId === teamId);
+    }
+
+    function renderTeamCards(){
+      const wrap = document.getElementById("teamCards");
+      wrap.innerHTML = "";
+      if (!state.teams.length){
+        wrap.innerHTML = `<div class="hint">No teams yet. Create one in registration or as teacher.</div>`;
         return;
       }
 
-      if (!data.teams || data.teams.length === 0) {
-        wrap.innerHTML = "<div class='hint'>No teams yet.</div>";
+      state.teams.forEach(t => {
+        const members = getTeamMembers(t.id);
+        const list = members.slice(0, 8).map(m => `${escapeHtml(m.avatar || "🙂")} ${escapeHtml(m.name || m.email)}`).join("<br>");
+        const more = members.length > 8 ? `<br><span class="hint">+${members.length - 8} more</span>` : "";
+
+        const div = document.createElement("div");
+        div.className = "card";
+        div.innerHTML = `
+          <div class="teamCardHeader">
+            <div style="display:flex; gap:10px; align-items:center;">
+              <div class="teamEmoji">${t.avatar}</div>
+              <div>
+                <div style="font-weight:900;">${escapeHtml(t.name)}</div>
+                <div class="hint">${members.length} member(s)</div>
+              </div>
+            </div>
+            <div class="pill">ID: <span class="mono">${escapeHtml(t.id)}</span></div>
+          </div>
+          <div class="hint" style="margin-top:10px; line-height:1.6;">
+            ${list || "No registered members yet."}${more}
+          </div>
+        `;
+        wrap.appendChild(div);
+      });
+    }
+
+    function totalsForTeam(teamId){
+      let xp=0, stars=0;
+      state.activities.forEach(a => {
+        const key = `${a.id}__${teamId}`;
+        const s = window.__scores[key];
+        if (!s) return;
+        if (s.attend) xp += (s.xp || 0);
+        stars += (s.stars || 0);
+      });
+      return { xp, stars, score: xp + stars * 5 };
+    }
+
+    function updateLeaderboard(){
+      const tbody = document.getElementById("leaderboardBody");
+      tbody.innerHTML = "";
+      if (!state.teams.length){
+        tbody.innerHTML = `<tr><td colspan="5" class="hint">No teams yet.</td></tr>`;
+        return;
+      }
+
+      const rows = state.teams.map(t => ({ team:t, ...totalsForTeam(t.id) }))
+        .sort((a,b) => b.score - a.score || b.xp - a.xp || b.stars - a.stars);
+
+      rows.forEach((r, i) => {
+        const tr = document.createElement("tr");
+        if (i===0) tr.classList.add("gold");
+        if (i===1) tr.classList.add("silver");
+        if (i===2) tr.classList.add("bronze");
+
+        tr.onclick = () => {
+          openModal(`${r.team.avatar} ${r.team.name}`, `
+            <div><b>${r.xp}</b> XP × 1 = <b>${r.xp}</b> points</div>
+            <div style="height:8px;"></div>
+            <div><b>${r.stars}</b> ⭐ × 5 = <b>${r.stars * 5}</b> points</div>
+            <div style="height:10px;"></div>
+            <div style="font-weight:900;">Total Score: ${r.score}</div>
+          `);
+        };
+
+        tr.innerHTML = `
+          <td><span class="rankBadge">${i+1}</span></td>
+          <td style="text-align:left;"><b>${r.team.avatar}</b> ${escapeHtml(r.team.name)}</td>
+          <td><b>${r.score}</b></td>
+          <td>${r.xp}</td>
+          <td>${"⭐".repeat(r.stars)} <span class="hint">(${r.stars})</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderActivitySelect(){
+      const sel = document.getElementById("activitySelect");
+      sel.innerHTML = `<option value="">-- Select activity --</option>`;
+      state.activities.forEach(a => {
+        const opt = document.createElement("option");
+        opt.value = a.id;
+        opt.textContent = a.name;
+        sel.appendChild(opt);
+      });
+      if (currentActivityId) sel.value = currentActivityId;
+    }
+
+    function loadActivity(){
+      if (state.role !== "teacher") return;
+      currentActivityId = document.getElementById("activitySelect").value;
+
+      const cont = document.getElementById("activityContainer");
+      const noMsg = document.getElementById("noActivityMessage");
+      const tbody = document.getElementById("activityTbody");
+      tbody.innerHTML = "";
+
+      if (!currentActivityId){
+        cont.style.display = "none";
+        noMsg.style.display = "block";
+        return;
+      }
+      cont.style.display = "block";
+      noMsg.style.display = "none";
+
+      const actName = state.activities.find(a => a.id === currentActivityId)?.name || currentActivityId;
+      document.getElementById("currentActivityName").textContent = `Grading: ${actName}`;
+
+      state.teams.forEach(t => {
+        const key = `${currentActivityId}__${t.id}`;
+        const s = window.__scores[key] || { attend:false, xp:0, stars:0, feedback:"" };
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td style="text-align:left;"><b>${t.avatar}</b> ${escapeHtml(t.name)}</td>
+          <td><input type="checkbox" ${s.attend ? "checked" : ""} onchange="updateScore('${currentActivityId}','${t.id}','attend', this.checked)"></td>
+          <td><input type="number" min="0" max="10" value="${s.attend ? (s.xp||0) : 0}" ${!s.attend ? "disabled" : ""} onchange="updateScore('${currentActivityId}','${t.id}','xp', this.value)"></td>
+          <td><input type="number" min="0" max="3" value="${s.stars||0}" onchange="updateScore('${currentActivityId}','${t.id}','stars', this.value)"></td>
+          <td><input type="text" value="${escapeHtml(s.feedback || "")}" onchange="updateScore('${currentActivityId}','${t.id}','feedback', this.value)" style="text-align:left;"></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function updateScore(activityId, teamId, field, value){
+      if (!requireTeacher()) return;
+      const key = `${activityId}__${teamId}`;
+      const ref = db.collection("scores").doc(key);
+
+      const cur = window.__scores[key] || { attend:false, xp:0, stars:0, feedback:"" };
+      let next = { ...cur };
+
+      if (field === "attend"){
+        next.attend = !!value;
+        if (!next.attend) next.xp = 0;
+      }
+      if (field === "xp"){
+        const v = Math.max(0, Math.min(10, parseInt(value) || 0));
+        if (next.attend) next.xp = v;
+      }
+      if (field === "stars"){
+        next.stars = Math.max(0, Math.min(3, parseInt(value) || 0));
+      }
+      if (field === "feedback"){
+        next.feedback = String(value || "");
+      }
+
+      next.activityId = activityId;
+      next.teamId = teamId;
+      next.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+
+      await ref.set(next, { merge:true });
+    }
+
+    async function addTeam(){
+      if (!requireTeacher()) return;
+      const name = document.getElementById("newTeam").value.trim();
+      if (!name) return toast("Enter team name.");
+      const id = slugify(name);
+      await db.collection("teams").doc(id).set({
+        name, avatar:"👥", createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge:true });
+      document.getElementById("newTeam").value = "";
+      toast("Team added.");
+    }
+
+    async function addActivity(){
+      if (!requireTeacher()) return;
+      const name = document.getElementById("newActivity").value.trim();
+      if (!name) return toast("Enter activity name.");
+      const id = slugify(name);
+      await db.collection("activities").doc(id).set({
+        name, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge:true });
+      document.getElementById("newActivity").value = "";
+      toast("Activity added.");
+    }
+
+    function renderManageTeamsList(){
+      const wrap = document.getElementById("manageTeamsList");
+      if (!wrap) return;
+      if (state.role !== "teacher"){
+        wrap.innerHTML = `<div class="hint">Teacher only.</div>`;
+        return;
+      }
+      if (!state.teams.length){
+        wrap.innerHTML = `<div class="hint">No teams yet.</div>`;
         return;
       }
 
       wrap.innerHTML = "";
-      data.teams.forEach(team => {
-        const row = document.createElement("div");
-        row.style.display = "grid";
-        row.style.gridTemplateColumns = "1fr 220px 120px";
-        row.style.gap = "10px";
-        row.style.alignItems = "center";
-        row.style.padding = "8px 0";
-        row.style.borderBottom = "1px dashed #eee";
-
-        const membersCount = (data.teamMeta?.[team]?.members || []).length;
-
-        row.innerHTML = `
-          <div>
-            <div style="font-weight:bold;">${escapeHtml(team)} <span class="pill" style="margin-left:6px;">${membersCount} member(s)</span></div>
-            <div class="hint">Rename or delete this team.</div>
-          </div>
-          <div>
-            <input type="text" id="rename_${cssSafeId(team)}" placeholder="New team name" style="width:100%;">
-          </div>
-          <div style="display:flex; gap:8px; justify-content:flex-end;">
-            <button class="secondary" onclick="renameTeam('${escapeQuotes(team)}')">Rename</button>
-            <button class="danger" onclick="deleteTeam('${escapeQuotes(team)}')">Delete</button>
+      state.teams.forEach(t => {
+        const members = getTeamMembers(t.id).length;
+        const div = document.createElement("div");
+        div.className = "card";
+        div.style.margin = "10px 0 0 0";
+        div.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+            <div style="display:flex; gap:10px; align-items:center;">
+              <div style="font-size:28px;">${t.avatar}</div>
+              <div>
+                <div style="font-weight:900;">${escapeHtml(t.name)} <span class="pill" style="margin-left:8px;">${members} member(s)</span></div>
+                <div class="hint">ID: <span class="mono">${escapeHtml(t.id)}</span></div>
+              </div>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <input type="text" id="rename_${t.id}" placeholder="New team name" style="min-width:220px;">
+              <button class="btn blue" onclick="renameTeam('${t.id}')">Rename</button>
+              <button class="btn danger" onclick="deleteTeam('${t.id}')">Delete</button>
+            </div>
           </div>
         `;
-        wrap.appendChild(row);
+        wrap.appendChild(div);
       });
     }
 
-    function cssSafeId(s){
-      return String(s).replaceAll(/[^a-zA-Z0-9_-]/g, "_");
-    }
-
-    function renameTeam(oldName) {
-      if (session.role !== "teacher") return alert("Teacher only.");
-      const input = document.getElementById(`rename_${cssSafeId(oldName)}`);
+    async function renameTeam(teamId){
+      if (!requireTeacher()) return;
+      const input = document.getElementById(`rename_${teamId}`);
       const newName = (input?.value || "").trim();
-      if (!newName) return alert("Enter a new team name.");
-      if (data.teams.includes(newName)) return alert("A team with this name already exists.");
-
-      data.teams = data.teams.map(t => (t === oldName ? newName : t));
-
-      if (!data.teamMeta) data.teamMeta = {};
-      data.teamMeta[newName] = data.teamMeta[oldName] || { avatar: "👥", members: [] };
-      delete data.teamMeta[oldName];
-
-      (data.activities || []).forEach(act => {
-        if (!data.scores[act]) data.scores[act] = {};
-        data.scores[act][newName] = data.scores[act][oldName] || { attend:false, xp:0, stars:0, feedback:"" };
-        delete data.scores[act][oldName];
-      });
-
-      Object.keys(users || {}).forEach(email => {
-        if (users[email].team === oldName) users[email].team = newName;
-      });
-
-      saveUsers();
-      saveData();
-      renderTeamSelect();
-      renderManageTeamsList();
-      renderMemberTeamFilter();
-      renderMembersTable();
-      alert("Team renamed successfully.");
+      if (!newName) return toast("Enter a new team name.");
+      await db.collection("teams").doc(teamId).set({ name: newName }, { merge:true });
+      toast("Team renamed.");
     }
 
-    function deleteTeam(teamName) {
-      if (session.role !== "teacher") return alert("Teacher only.");
-      const members = data.teamMeta?.[teamName]?.members || [];
-      const msg = `Delete team "${teamName}"?\n\nThis will remove its scores.\nMembers registered on this browser: ${members.length}\n\nOK = Delete team AND its members.`;
-      if (!confirm(msg)) return;
+    async function deleteTeam(teamId){
+      if (!requireTeacher()) return;
+      const team = state.teams.find(t => t.id === teamId);
+      if (!confirm(`Delete team "${team?.name || teamId}"?
+This will remove:
+- team document
+- all scores for this team
+- users' team links will be cleared
 
-      data.teams = (data.teams || []).filter(t => t !== teamName);
+Proceed?`)) return;
 
-      (data.activities || []).forEach(act => {
-        if (data.scores[act]) delete data.scores[act][teamName];
+      const batch = db.batch();
+      batch.delete(db.collection("teams").doc(teamId));
+
+      Object.entries(state.users || {}).forEach(([uid, u]) => {
+        if (u.teamId === teamId) batch.set(db.collection("users").doc(uid), { teamId: "" }, { merge:true });
       });
 
-      Object.keys(users || {}).forEach(email => {
-        if (users[email].team === teamName) delete users[email];
+      Object.keys(window.__scores || {}).forEach(id => {
+        const s = window.__scores[id];
+        if (s.teamId === teamId) batch.delete(db.collection("scores").doc(id));
       });
 
-      if (data.teamMeta) delete data.teamMeta[teamName];
-
-      saveUsers();
-      saveData();
-      renderManageTeamsList();
-      renderMemberTeamFilter();
-      renderMembersTable();
-      alert("Team deleted.");
+      await batch.commit();
+      toast("Team deleted.");
     }
 
-    function renderMemberTeamFilter() {
+    function renderMemberTeamFilter(){
       const sel = document.getElementById("memberTeamFilter");
       if (!sel) return;
-
       sel.innerHTML = "";
       const optAll = document.createElement("option");
       optAll.value = "__all__";
       optAll.textContent = "All teams";
       sel.appendChild(optAll);
-
-      (data.teams || []).forEach(t => {
+      state.teams.forEach(t => {
         const opt = document.createElement("option");
-        opt.value = t;
-        opt.textContent = t;
+        opt.value = t.id;
+        opt.textContent = t.name;
         sel.appendChild(opt);
       });
     }
 
-    function renderMembersTable() {
+    function renderMembersTable(){
       const tbody = document.getElementById("membersTbody");
       if (!tbody) return;
-
-      if (session.role !== "teacher") {
+      if (state.role !== "teacher"){
         tbody.innerHTML = `<tr><td colspan="5" class="hint">Teacher only.</td></tr>`;
         return;
       }
 
-      const teamFilter = document.getElementById("memberTeamFilter")?.value || "__all__";
-      const q = (document.getElementById("memberSearch")?.value || "").trim().toLowerCase();
+      const teamFilter = document.getElementById("memberTeamFilter").value || "__all__";
+      const q = (document.getElementById("memberSearch").value || "").trim().toLowerCase();
 
-      const list = Object.values(users || {})
-        .filter(u => u.role === "student")
-        .filter(u => teamFilter === "__all__" ? true : u.team === teamFilter)
-        .filter(u => !q ? true : (u.name||"").toLowerCase().includes(q) || (u.email||"").toLowerCase().includes(q))
-        .sort((a,b) => (a.team||"").localeCompare(b.team||"") || (a.name||"").localeCompare(b.name||""));
+      const list = Object.entries(state.users || {})
+        .map(([uid,u]) => ({ uid, ...u }))
+        .filter(u => u.role === "student" || u.role === "teacher")
+        .filter(u => teamFilter === "__all__" ? true : (u.teamId === teamFilter))
+        .filter(u => !q ? true : (String(u.name||"").toLowerCase().includes(q) || String(u.email||"").toLowerCase().includes(q)))
+        .sort((a,b) => String(a.teamId||"").localeCompare(String(b.teamId||"")) || String(a.name||"").localeCompare(String(b.name||"")));
 
-      if (list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="hint">No registered students match this filter.</td></tr>`;
+      if (!list.length){
+        tbody.innerHTML = `<tr><td colspan="5" class="hint">No users match this filter.</td></tr>`;
         return;
       }
 
       tbody.innerHTML = "";
       list.forEach(u => {
+        const teamName = state.teams.find(t => t.id === u.teamId)?.name || (u.teamId ? u.teamId : "—");
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td>${escapeHtml(u.name || "")}</td>
-          <td>${escapeHtml(u.email || "")}</td>
-          <td>${escapeHtml(u.team || "")}</td>
-          <td style="font-size:22px;">${escapeHtml(u.avatar || "🙂")}</td>
+          <td style="text-align:left;">${escapeHtml(u.name || "—")}</td>
+          <td style="text-align:left;">${escapeHtml(u.email || "—")}</td>
+          <td>${escapeHtml(teamName)}</td>
+          <td style="font-size:20px;">${escapeHtml(u.avatar || "🙂")}</td>
           <td>
-            <button class="secondary" onclick="openMemberModal('${escapeQuotes(u.email)}')">Edit</button>
-            <button class="danger" onclick="deleteMember('${escapeQuotes(u.email)}')">Delete</button>
+            <button class="btn blue" onclick="openMemberModal('${u.uid}')">Edit</button>
+            <button class="btn danger" onclick="removeUserFromTeam('${u.uid}')">Remove from team</button>
           </td>
         `;
         tbody.appendChild(tr);
       });
     }
 
-    function deleteMember(email) {
-      if (session.role !== "teacher") return alert("Teacher only.");
-      const u = users[email];
-      if (!u) return alert("User not found.");
-      if (!confirm(`Delete student:\n${u.name} (${u.email})\nTeam: ${u.team}\n\nThis removes the student from this browser only.`)) return;
+    function openMemberModal(uid){
+      if (!requireTeacher()) return;
+      const u = state.users[uid];
+      if (!u) return toast("User not found.");
 
-      const team = u.team;
-      if (data.teamMeta?.[team]?.members) {
-        data.teamMeta[team].members = data.teamMeta[team].members.filter(m => m.email !== email);
-      }
-
-      delete users[email];
-      saveUsers();
-      saveData();
-      renderMembersTable();
-      renderTeamCards();
-    }
-
-    function openMemberModal(email) {
-      if (session.role !== "teacher") return alert("Teacher only.");
-      const u = users[email];
-      if (!u) return alert("User not found.");
-
-      document.getElementById("editMemberEmailHint").textContent = `Email (key): ${u.email}`;
+      document.getElementById("memberModal").dataset.uid = uid;
+      document.getElementById("editMemberEmailHint").textContent = `UID: ${uid} · Email: ${u.email || ""}`;
       document.getElementById("editMemberName").value = u.name || "";
-      document.getElementById("editMemberAvatar").value = u.avatar || "🙂";
       document.getElementById("editMemberNewTeam").value = "";
 
       const sel = document.getElementById("editMemberTeam");
-      sel.innerHTML = "";
-      (data.teams || []).forEach(t => {
+      sel.innerHTML = `<option value="">— No team —</option>`;
+      state.teams.forEach(t => {
         const opt = document.createElement("option");
-        opt.value = t;
-        opt.textContent = t;
+        opt.value = t.id;
+        opt.textContent = t.name;
         sel.appendChild(opt);
       });
-      if ((data.teams || []).includes(u.team)) sel.value = u.team;
+      sel.value = u.teamId || "";
 
       renderEditAvatarPicker(u.avatar || "🙂");
-
-      document.getElementById("memberModal").dataset.email = u.email;
 
       document.getElementById("memberOverlay").style.display = "block";
       document.getElementById("memberModal").style.display = "block";
     }
 
-    function closeMemberModal() {
-      const ov = document.getElementById("memberOverlay");
-      const mo = document.getElementById("memberModal");
-      if (ov) ov.style.display = "none";
-      if (mo) mo.style.display = "none";
+    function closeMemberModal(){
+      document.getElementById("memberOverlay").style.display = "none";
+      document.getElementById("memberModal").style.display = "none";
     }
 
-    function renderEditAvatarPicker(selected) {
+    function renderEditAvatarPicker(selected){
       const wrap = document.getElementById("editAvatarPicker");
       wrap.innerHTML = "";
       const hidden = document.getElementById("editMemberAvatar");
@@ -826,341 +1114,106 @@
         btn.type = "button";
         btn.className = "avatarBtn" + (hidden.value === a ? " selected" : "");
         btn.textContent = a;
-        btn.onclick = () => {
-          hidden.value = a;
-          renderEditAvatarPicker(a);
-        };
+        btn.onclick = () => { hidden.value = a; renderEditAvatarPicker(a); };
         wrap.appendChild(btn);
       });
     }
 
-    function syncEditTeamChoice() {
-      // No-op: we read typed team on save.
-    }
-
-    function saveMemberEdits() {
-      if (session.role !== "teacher") return alert("Teacher only.");
-      const modal = document.getElementById("memberModal");
-      const email = modal.dataset.email;
-      const u = users[email];
-      if (!u) return alert("User not found.");
+    async function saveMemberEdits(){
+      if (!requireTeacher()) return;
+      const uid = document.getElementById("memberModal").dataset.uid;
+      const u = state.users[uid];
+      if (!u) return toast("User not found.");
 
       const newName = document.getElementById("editMemberName").value.trim();
-      const newAvatar = document.getElementById("editMemberAvatar").value || u.avatar || "🙂";
-      const typedTeam = document.getElementById("editMemberNewTeam").value.trim();
-      const selectedTeam = document.getElementById("editMemberTeam").value;
-      const newTeam = typedTeam || selectedTeam;
+      const newAvatar = document.getElementById("editMemberAvatar").value || "🙂";
+      const newTeamName = document.getElementById("editMemberNewTeam").value.trim();
+      const selectedTeamId = document.getElementById("editMemberTeam").value || "";
 
-      if (!newName) return alert("Name cannot be empty.");
-      if (!newTeam) return alert("Select a team or type a new one.");
+      if (!newName) return toast("Name cannot be empty.");
 
-      const oldTeam = u.team;
-
-      ensureTeam(newTeam, newAvatar);
-
-      u.name = newName;
-      u.avatar = newAvatar;
-      u.team = newTeam;
-
-      if (data.teamMeta?.[oldTeam]?.members) {
-        data.teamMeta[oldTeam].members = data.teamMeta[oldTeam].members.filter(m => m.email !== email);
+      let teamId = selectedTeamId;
+      if (newTeamName){
+        teamId = slugify(newTeamName);
+        await db.collection("teams").doc(teamId).set({ name: newTeamName, avatar: newAvatar }, { merge:true });
       }
 
-      if (!data.teamMeta[newTeam]) data.teamMeta[newTeam] = { avatar: newAvatar, members: [] };
-      if (!data.teamMeta[newTeam].members) data.teamMeta[newTeam].members = [];
-      data.teamMeta[newTeam].members = data.teamMeta[newTeam].members.filter(m => m.email !== email);
-      data.teamMeta[newTeam].members.push({ name: newName, email, avatar: newAvatar });
+      await db.collection("users").doc(uid).set({
+        name: newName, avatar: newAvatar, teamId: teamId
+      }, { merge:true });
 
-      data.teamMeta[newTeam].avatar = data.teamMeta[newTeam].avatar || newAvatar;
-
-      saveUsers();
-      saveData();
-      renderManageTeamsList();
-      renderMemberTeamFilter();
-      renderMembersTable();
+      toast("User updated.");
       closeMemberModal();
     }
 
-/* ---------- Original app logic (with small changes) ---------- */
-    function updateAll() {
-      updateLeaderboard();
-      updateActivitySelect();
-      renderTeamCards();
-      renderManageTeamsList();
-      renderMemberTeamFilter();
-      renderMembersTable();
+    async function removeUserFromTeam(uid){
+      if (!requireTeacher()) return;
+      const u = state.users[uid];
+      if (!u) return;
+      if (!confirm(`Remove ${u.name || u.email} from their team?`)) return;
+      await db.collection("users").doc(uid).set({ teamId: "" }, { merge:true });
+      toast("Removed from team.");
     }
 
-    function ensureTeam(name, avatarIfNew=null) {
-      if (!data.teams.includes(name)) {
-        data.teams.push(name);
-        // init scores for existing activities
-        data.activities.forEach(act => {
-          if (!data.scores[act]) data.scores[act] = {};
-          data.scores[act][name] = { attend: false, xp: 0, stars: 0, feedback: "" };
-        });
-        if (!data.teamMeta) data.teamMeta = {};
-        data.teamMeta[name] = data.teamMeta[name] || { avatar: avatarIfNew || "👥", members: [] };
-      } else {
-        // ensure meta exists
-        if (!data.teamMeta) data.teamMeta = {};
-        data.teamMeta[name] = data.teamMeta[name] || { avatar: avatarIfNew || "👥", members: [] };
-        // keep first avatar if already set
-        if (avatarIfNew && !data.teamMeta[name].avatar) data.teamMeta[name].avatar = avatarIfNew;
-      }
+    async function resetAllFirebase(){
+      if (!requireTeacher()) return;
+      if (!confirm("RESET ALL CLOUD DATA?
+Deletes teams, activities, scores, and clears teamId in users.
+(Does not delete Auth accounts.)
+
+Proceed?")) return;
+
+      const batch = db.batch();
+      const teamsSnap = await db.collection("teams").get();
+      teamsSnap.forEach(doc => batch.delete(doc.ref));
+      const actSnap = await db.collection("activities").get();
+      actSnap.forEach(doc => batch.delete(doc.ref));
+      const scoreSnap = await db.collection("scores").get();
+      scoreSnap.forEach(doc => batch.delete(doc.ref));
+      const usersSnap = await db.collection("users").get();
+      usersSnap.forEach(doc => batch.set(doc.ref, { teamId:"" }, { merge:true }));
+      await batch.commit();
+      toast("Cloud data reset complete.");
     }
 
-    function addTeam() {
-      if (session.role !== "teacher") return alert("Teacher only.");
-      const name = document.getElementById("newTeam").value.trim();
-      if (name) {
-        ensureTeam(name, "👥");
-        document.getElementById("newTeam").value = "";
-        saveData();
-      }
-    }
+    renderAvatarPicker();
+    renderTeamSelect();
+    toggleTeamMode();
+    toggleAuth(true);
 
-    function addActivity() {
-      if (session.role !== "teacher") return alert("Teacher only.");
-      const name = document.getElementById("newActivity").value.trim();
-      if (name && data.activities.length < 20 && !data.activities.includes(name)) {
-        data.activities.push(name);
-        data.scores[name] = {};
-        data.teams.forEach(team => {
-          data.scores[name][team] = { attend: false, xp: 0, stars: 0, feedback: "" };
-        });
-        document.getElementById("newActivity").value = "";
-        saveData();
-      }
-    }
+    auth.onAuthStateChanged(async user => {
+      state.me = null;
+      state.role = "guest";
+      clearListeners();
 
-    function updateLeaderboard() {
-      const tbody = document.querySelector("#leaderboardTable tbody");
-      tbody.innerHTML = "";
-
-      if (data.teams.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5">No teams yet. Students can register, or teacher can add teams in Manage.</td></tr>';
+      if (!user){
+        setRoleUI();
+        startRealtime();
+        toggleAuth(true);
         return;
       }
 
-      const totals = data.teams.map(team => {
-        let totalXP = 0, totalStars = 0;
-        data.activities.forEach(act => {
-          const s = data.scores[act]?.[team] || { xp: 0, stars: 0, attend: false };
-          totalXP += s.attend ? s.xp : 0;
-          totalStars += s.stars;
-        });
-        const totalScore = totalXP * 1 + totalStars * 5;
-        return { team, totalXP, totalStars, totalScore };
-      });
-
-      totals.sort((a, b) => b.totalScore - a.totalScore || b.totalXP - a.totalXP || b.totalStars - a.totalStars);
-
-      totals.forEach((row, i) => {
-        const tr = document.createElement("tr");
-        if (i === 0) tr.classList.add("gold");
-        if (i === 1) tr.classList.add("silver");
-        if (i === 2) tr.classList.add("bronze");
-
-        tr.onclick = () => showPopup(row.team, row.totalXP, row.totalStars, row.totalScore);
-
-        const avatar = data.teamMeta?.[row.team]?.avatar ? `${data.teamMeta[row.team].avatar} ` : "";
-        tr.innerHTML = `
-          <td>${i + 1} ${i < 3 ? "🏅" : ""}</td>
-          <td>${avatar}${row.team}</td>
-          <td class="score">${row.totalScore}</td>
-          <td>${row.totalXP}</td>
-          <td class="stars">${"⭐".repeat(row.totalStars)} (${row.totalStars})</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    function renderTeamCards() {
-      const wrap = document.getElementById("teamCards");
-      wrap.innerHTML = "";
-
-      if (!data.teams || data.teams.length === 0) {
-        wrap.innerHTML = "<div class='hint'>No teams yet.</div>";
-        return;
+      const meRef = db.collection("users").doc(user.uid);
+      const meSnap = await meRef.get();
+      if (!meSnap.exists){
+        await meRef.set({
+          email: user.email || "", name: "", role: "student",
+          teamId: "", avatar: "🙂",
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge:true });
       }
 
-      data.teams.forEach(team => {
-        const meta = data.teamMeta?.[team] || { avatar: "👥", members: [] };
-        const members = (meta.members || []).slice(0, 8)
-          .map(m => `${m.avatar || "🙂"} ${escapeHtml(m.name || m.email)}`).join("<br>");
-        const more = (meta.members || []).length > 8 ? `<br><span class="hint">+${(meta.members||[]).length - 8} more</span>` : "";
+      unsub.push(meRef.onSnapshot(doc => {
+        const me = doc.data() || {};
+        state.me = { uid: user.uid, ...me };
+        state.role = me.role === "teacher" ? "teacher" : "student";
+        setRoleUI();
+      }));
 
-        const div = document.createElement("div");
-        div.className = "card";
-        div.style.margin = "0";
-        div.innerHTML = `
-          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
-            <div style="font-size:28px;">${meta.avatar || "👥"}</div>
-            <div style="flex:1;">
-              <div style="font-weight:bold;">${escapeHtml(team)}</div>
-              <div class="hint">${(meta.members||[]).length} member(s)</div>
-            </div>
-          </div>
-          <div style="margin-top:10px; font-size:0.95em; text-align:left;">
-            ${members || "<span class='hint'>No registered members yet.</span>"}${more}
-          </div>
-        `;
-        wrap.appendChild(div);
-      });
-    }
-
-    function escapeHtml(s) {
-      return String(s)
-        .replaceAll("&","&amp;").replaceAll("<","&lt;")
-        .replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
-    }
-
-    function showPopup(team, xp, stars, score) {
-      document.getElementById("popupTeam").textContent = team;
-      document.getElementById("popupDetails").innerHTML = `
-        <strong>${xp}</strong> XP × 1 = ${xp} points<br><br>
-        <strong>${stars}</strong> ⭐ × 5 = ${stars * 5} points<br><br>
-        <strong>Total Score: ${score}</strong>
-      `;
-      document.getElementById("overlay").style.display = "block";
-      document.getElementById("popup").style.display = "block";
-    }
-
-    function closePopup() {
-      document.getElementById("overlay").style.display = "none";
-      document.getElementById("popup").style.display = "none";
-    }
-
-    function updateActivitySelect() {
-      const select = document.getElementById("activitySelect");
-      select.innerHTML = '<option value="">-- Select Activity to Grade --</option>';
-      data.activities.forEach(act => {
-        const opt = document.createElement("option");
-        opt.value = act;
-        opt.text = act;
-        if (act === currentActivity) opt.selected = true;
-        select.appendChild(opt);
-      });
-    }
-
-    function loadActivity() {
-      if (session.role !== "teacher") return;
-
-      const select = document.getElementById("activitySelect");
-      currentActivity = select.value;
-      const container = document.getElementById("activityContainer");
-      const nameDisplay = document.getElementById("currentActivityName");
-      const noMsg = document.getElementById("noActivityMessage");
-      const tbody = document.querySelector("#activityTable tbody");
-      tbody.innerHTML = "";
-
-      if (!currentActivity) {
-        container.style.display = "none";
-        noMsg.style.display = "block";
-        return;
-      }
-
-      container.style.display = "block";
-      noMsg.style.display = "none";
-      nameDisplay.textContent = `Grading: ${currentActivity}`;
-
-      data.teams.forEach(team => {
-        if (!data.scores[currentActivity]) data.scores[currentActivity] = {};
-        const s = data.scores[currentActivity][team] || { attend: false, xp: 0, stars: 0, feedback: "" };
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${escapeHtml(team)}</td>
-          <td><input type="checkbox" ${s.attend ? "checked" : ""} onchange="updateScore('${escapeQuotes(team)}','attend', this.checked)"></td>
-          <td><input type="number" min="0" max="10" value="${s.attend ? s.xp : 0}" ${!s.attend ? "disabled" : ""} onchange="updateScore('${escapeQuotes(team)}','xp', this.value)"></td>
-          <td><input type="number" min="0" max="3" value="${s.stars}" onchange="updateScore('${escapeQuotes(team)}','stars', this.value)"></td>
-          <td><input type="text" value="${escapeAttr(s.feedback)}" onchange="updateScore('${escapeQuotes(team)}','feedback', this.value)" style="width:100%"></td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    function escapeQuotes(s){ return String(s).replaceAll("\\","\\\\").replaceAll("'","\\'"); }
-    function escapeAttr(s){ return String(s).replaceAll('"',"&quot;"); }
-
-    function updateScore(team, field, value) {
-      if (session.role !== "teacher") return;
-
-      if (!data.scores[currentActivity]) data.scores[currentActivity] = {};
-      if (!data.scores[currentActivity][team]) data.scores[currentActivity][team] = { attend: false, xp: 0, stars: 0, feedback: "" };
-
-      if (field === "attend") {
-        data.scores[currentActivity][team].attend = value;
-        if (!value) data.scores[currentActivity][team].xp = 0;
-      } else if (field === "xp") {
-        value = Math.max(0, Math.min(10, parseInt(value) || 0));
-        if (data.scores[currentActivity][team].attend) data.scores[currentActivity][team].xp = value;
-      } else if (field === "stars") {
-        value = Math.max(0, Math.min(3, parseInt(value) || 0));
-        data.scores[currentActivity][team].stars = value;
-      } else if (field === "feedback") {
-        data.scores[currentActivity][team].feedback = value;
-      }
-
-      saveData();
-    }
-
-    function openTab(evt, tabName) {
-      // student/guest can only open Dashboard
-      if (session.role !== "teacher" && tabName !== "Dashboard") {
-        alert("Students can access the Dashboard only.");
-        tabName = "Dashboard";
-      }
-
-      document.querySelectorAll(".tabcontent").forEach(t => t.classList.remove("active"));
-      document.querySelectorAll(".tablink").forEach(b => b.classList.remove("active"));
-
-      document.getElementById(tabName).classList.add("active");
-      evt.currentTarget.classList.add("active");
-
-      if (tabName === "Dashboard") updateLeaderboard();
-      if (tabName === "Activities" && session.role === "teacher") {
-        updateActivitySelect();
-        loadActivity();
-      }
-      if (tabName === "Manage" && session.role === "teacher") {
-        renderManageTeamsList();
-        renderMemberTeamFilter();
-        renderMembersTable();
-      }
-    }
-
-    // helper to open a tab without an event (used after login)
-    function openTabFake(tabName) {
-      document.querySelectorAll(".tabcontent").forEach(t => t.classList.remove("active"));
-      document.querySelectorAll(".tablink").forEach(b => b.classList.remove("active"));
-
-      document.getElementById(tabName).classList.add("active");
-      document.getElementById("tabDashboard").classList.add("active");
-      // keep teacher tabs inactive unless clicked
-      if (tabName === "Dashboard") updateLeaderboard();
-    }
-
-    function resetAll() {
-      if (session.role !== "teacher") return alert("Teacher only.");
-      if (confirm("This will delete ALL teams, activities, scores, and registrations on this browser. Are you sure?")) {
-        localStorage.removeItem("classroomDataV2");
-        localStorage.removeItem("classroomUsersV2");
-        localStorage.removeItem("classroomSessionV2");
-        localStorage.removeItem("classroomData"); // legacy
-        data = { teams: [], activities: [], scores: {}, teamMeta: {} };
-        users = {};
-        session = { role: "guest", email: null };
-        currentActivity = null;
-        loadAll();
-        showAuth();
-      }
-    }
-
-    /* ---------- Start ---------- */
-    // Hide auth card by default if signed in, else show
-    loadAll();
-    if (session.role !== "guest") document.getElementById("authCard").classList.add("hidden");
+      startRealtime();
+      toggleAuth(false);
+      toast("Signed in.");
+    });
   </script>
 </body>
 </html>
